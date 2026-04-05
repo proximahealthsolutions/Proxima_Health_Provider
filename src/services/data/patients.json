@@ -1,0 +1,82 @@
+[
+  {
+    "id": "7d95f1ea-61ac-49bc-aa80-f22ac11f7294",
+    "firstName": "Maria",
+    "lastName": "Rodriguez",
+    "gender": "F",
+    "dateOfBirth": "1981-06-14",
+    "phone": "+1 415 555 0131",
+    "email": "maria.rodriguez@example.com",
+    "primaryCondition": "Type 2 Diabetes"
+  },
+  {
+    "id": "4ec435f9-efbe-4f5e-b1ba-d89e7736e5e1",
+    "firstName": "James",
+    "lastName": "Thompson",
+    "gender": "M",
+    "dateOfBirth": "1964-02-19",
+    "phone": "+1 415 555 0132",
+    "email": "james.thompson@example.com",
+    "primaryCondition": "Cardiac Arrhythmia"
+  },
+  {
+    "id": "f3dc9cca-e812-4949-a69b-0cf194cbdef3",
+    "firstName": "Priya",
+    "lastName": "Sharma",
+    "gender": "F",
+    "dateOfBirth": "1991-09-22",
+    "phone": "+1 415 555 0133",
+    "email": "priya.sharma@example.com",
+    "primaryCondition": "Hypertension"
+  },
+  {
+    "id": "f47d1af7-fd83-4847-a496-c03e6f459f40",
+    "firstName": "Emma",
+    "lastName": "Williams",
+    "gender": "F",
+    "dateOfBirth": "1971-01-03",
+    "phone": "+1 415 555 0134",
+    "email": "emma.williams@example.com",
+    "primaryCondition": "High Cholesterol"
+  },
+  {
+    "id": "a2a79c40-8605-4d59-bb50-87c27032a095",
+    "firstName": "Robert",
+    "lastName": "Davis",
+    "gender": "M",
+    "dateOfBirth": "1978-11-30",
+    "phone": "+1 415 555 0135",
+    "email": "robert.davis@example.com",
+    "primaryCondition": "Back Pain"
+  },
+  {
+    "id": "9f14f8ca-31f3-4950-b7eb-c64fcfd4d730",
+    "firstName": "Chinedu",
+    "lastName": "Okafor",
+    "gender": "M",
+    "dateOfBirth": "1987-05-09",
+    "phone": "+1 415 555 0136",
+    "email": "chinedu.okafor@example.com",
+    "primaryCondition": "Hypertension"
+  },
+  {
+    "id": "52de8ce8-2585-4ab2-a518-c7ea5e587ce5",
+    "firstName": "Amina",
+    "lastName": "Bello",
+    "gender": "F",
+    "dateOfBirth": "1974-08-13",
+    "phone": "+1 415 555 0137",
+    "email": "amina.bello@example.com",
+    "primaryCondition": "Type 2 Diabetes"
+  },
+  {
+    "id": "71571a1e-bf95-4aba-9b11-c9f5ec998408",
+    "firstName": "Daniel",
+    "lastName": "Peters",
+    "gender": "M",
+    "dateOfBirth": "1980-12-02",
+    "phone": "+1 415 555 0138",
+    "email": "daniel.peters@example.com",
+    "primaryCondition": "Chest Pain"
+  }
+]

@@ -1,0 +1,29 @@
+[
+  {
+    "id": "lab_1001",
+    "patientId": "4ec435f9-efbe-4f5e-b1ba-d89e7736e5e1",
+    "test": "Cardiac Panel",
+    "ordered": "2026-02-28",
+    "priority": "Urgent",
+    "status": "Processing",
+    "resultNote": ""
+  },
+  {
+    "id": "lab_1002",
+    "patientId": "f47d1af7-fd83-4847-a496-c03e6f459f40",
+    "test": "Lipid Profile",
+    "ordered": "2026-02-27",
+    "priority": "Routine",
+    "status": "Collected",
+    "resultNote": ""
+  },
+  {
+    "id": "lab_1003",
+    "patientId": "a2a79c40-8605-4d59-bb50-87c27032a095",
+    "test": "CBC",
+    "ordered": "2026-02-27",
+    "priority": "Routine",
+    "status": "Result Ready",
+    "resultNote": "CBC within normal limits."
+  }
+]

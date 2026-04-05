@@ -1,0 +1,31 @@
+{
+  "profile": {
+    "firstName": "Sarah",
+    "lastName": "Collins",
+    "email": "sarah.collins@proximahealth.com",
+    "specialty": "Cardiology",
+    "phone": "+1 415 555 0143"
+  },
+  "notifications": {
+    "appointmentRequests": true,
+    "scheduleChanges": true,
+    "labResultAlerts": true,
+    "prescriptionRefills": true,
+    "billingAlerts": false,
+    "inAppSound": true,
+    "emailDigest": true,
+    "smsCritical": false
+  },
+  "security": {
+    "twoFactorAuth": true,
+    "loginAlerts": true,
+    "rememberDevice": false,
+    "sessionTimeoutMinutes": 30
+  },
+  "workflow": {
+    "autoConfirmFollowUps": false,
+    "showOnlyAssignedPatients": true,
+    "compactMode": false,
+    "defaultLanding": "overview"
+  }
+}

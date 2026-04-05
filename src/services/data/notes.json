@@ -1,0 +1,23 @@
+[
+  {
+    "id": "note_1001",
+    "patientId": "7d95f1ea-61ac-49bc-aa80-f22ac11f7294",
+    "date": "2026-02-28",
+    "summary": "Blood glucose trend improving after medication adjustment.",
+    "tag": "Progress"
+  },
+  {
+    "id": "note_1002",
+    "patientId": "4ec435f9-efbe-4f5e-b1ba-d89e7736e5e1",
+    "date": "2026-02-28",
+    "summary": "Episodes reduced. Continue monitoring and repeat ECG in 2 weeks.",
+    "tag": "Cardiology"
+  },
+  {
+    "id": "note_1003",
+    "patientId": "f47d1af7-fd83-4847-a496-c03e6f459f40",
+    "date": "2026-02-27",
+    "summary": "Dietary counseling completed. Follow-up lipid panel requested.",
+    "tag": "Lifestyle"
+  }
+]

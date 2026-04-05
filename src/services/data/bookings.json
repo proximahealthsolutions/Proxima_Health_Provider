@@ -1,0 +1,56 @@
+[
+  {
+    "id": "bk_1001",
+    "patientId": "9f14f8ca-31f3-4950-b7eb-c64fcfd4d730",
+    "age": 39,
+    "gender": "M",
+    "condition": "Hypertension",
+    "reason": "Recurring headache and blood pressure follow-up",
+    "preferredDate": "2026-03-01",
+    "preferredTime": "09:00 AM",
+    "status": "pending",
+    "decisionNote": "",
+    "careActions": {
+      "clinical_note": false,
+      "lab_order": false,
+      "prescription": false,
+      "follow_up": false
+    }
+  },
+  {
+    "id": "bk_1002",
+    "patientId": "52de8ce8-2585-4ab2-a518-c7ea5e587ce5",
+    "age": 52,
+    "gender": "F",
+    "condition": "Type 2 Diabetes",
+    "reason": "Medication review and fasting glucose checks",
+    "preferredDate": "2026-03-01",
+    "preferredTime": "10:30 AM",
+    "status": "accepted",
+    "decisionNote": "Accepted for care plan review.",
+    "careActions": {
+      "clinical_note": true,
+      "lab_order": true,
+      "prescription": false,
+      "follow_up": false
+    }
+  },
+  {
+    "id": "bk_1003",
+    "patientId": "71571a1e-bf95-4aba-9b11-c9f5ec998408",
+    "age": 46,
+    "gender": "M",
+    "condition": "Chest Pain",
+    "reason": "Needs urgent reassessment after ER discharge",
+    "preferredDate": "2026-03-02",
+    "preferredTime": "12:15 PM",
+    "status": "rejected",
+    "decisionNote": "Referred to emergency cardiology queue.",
+    "careActions": {
+      "clinical_note": false,
+      "lab_order": false,
+      "prescription": false,
+      "follow_up": false
+    }
+  }
+]
