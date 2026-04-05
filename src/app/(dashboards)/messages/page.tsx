@@ -29,7 +29,8 @@ type ChatMessage = {
   senderRole: string;
   text: string;
   createdAt: string;
-  messageType?: "TEXT" | "CALL";
+  messageType?: "TEXT" | "CALL" | "MEDIA";
+  attachments?: ChatAttachment[];
   callStatus?: "ANSWERED" | "NOT_ANSWERED" | "CANCELLED";
   callType?: "VIDEO" | "AUDIO";
   sender?: {
@@ -38,6 +39,15 @@ type ChatMessage = {
     lastName?: string | null;
     profileImageUrl?: string | null;
   };
+};
+
+type ChatAttachment = {
+  key: string;
+  url: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  kind: "image" | "file";
 };
 
 export default function MessagesPage() {
@@ -53,7 +63,9 @@ export default function MessagesPage() {
   const [typingByThread, setTypingByThread] = useState<Record<string, boolean>>({});
   const [onlineByThread, setOnlineByThread] = useState<Record<string, boolean>>({});
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const messageEndRef = useRef<HTMLDivElement | null>(null);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const typingTimeoutRef = useRef<number | null>(null);
   const typingSentRef = useRef(false);
   const socketRef = useRef<Socket | null>(null);
@@ -382,6 +394,61 @@ export default function MessagesPage() {
     }
   }
 
+  async function handleAttachmentSelect(file?: File | null) {
+    if (!activeThreadId || !file) return;
+    setUploadingAttachment(true);
+    try {
+      const uploadBody = new FormData();
+      uploadBody.append("file", file);
+      const uploaded = await fetchApi(`/providers/messages/${activeThreadId}/attachments`, {
+        method: "POST",
+        body: uploadBody,
+      });
+
+      const attachment: ChatAttachment = {
+        key: uploaded.key,
+        url: uploaded.url,
+        name: uploaded.name,
+        mimeType: uploaded.mimeType,
+        size: uploaded.size,
+        kind: uploaded.mimeType?.startsWith("image/") ? "image" : "file",
+      };
+
+      const created = await fetchApi(`/providers/messages/${activeThreadId}`, {
+        method: "POST",
+        body: JSON.stringify({
+          text: draft.trim(),
+          attachments: [attachment],
+        }),
+      });
+
+      setMessages((prev) => [...prev, created]);
+      setDraft("");
+    } catch (err: any) {
+      notify(err?.message || "Failed to send attachment.");
+    } finally {
+      setUploadingAttachment(false);
+      if (attachmentInputRef.current) attachmentInputRef.current.value = "";
+    }
+  }
+
+  const downloadAttachment = useCallback(async (attachment: ChatAttachment) => {
+    try {
+      const response = await fetch(attachment.url);
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = attachment.name || "download";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      window.open(attachment.url, "_blank", "noopener,noreferrer");
+    }
+  }, []);
+
   const renderCallLabel = useCallback(
     (message: ChatMessage) => {
       if (message.callStatus === "ANSWERED") return "Answered";
@@ -596,6 +663,31 @@ export default function MessagesPage() {
                   >
                     <div className="text-[10px] opacity-70 mb-1">{mine ? "You" : senderName}</div>
                     <div className="leading-relaxed">{message.text}</div>
+                    {!!message.attachments?.length && (
+                      <div className="mt-3 space-y-2">
+                        {message.attachments.map((attachment) => (
+                          <button
+                            key={attachment.key}
+                            type="button"
+                            onClick={() => downloadAttachment(attachment)}
+                            className={cn(
+                              "block w-full overflow-hidden rounded-2xl border text-left",
+                              mine ? "border-white/20 bg-white/10" : "border-[var(--color-border)] bg-[var(--color-surface-soft)]"
+                            )}
+                          >
+                            {attachment.kind === "image" ? (
+                              <img src={attachment.url} alt={attachment.name} className="h-40 w-full object-cover" />
+                            ) : (
+                              <div className="px-4 py-3 text-sm font-medium">{attachment.name}</div>
+                            )}
+                            <div className="flex items-center justify-between gap-3 px-4 py-3 text-xs opacity-80">
+                              <span className="truncate">{attachment.name}</span>
+                              <span>Download</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <div className="text-[10px] opacity-60 mt-2">
                       {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </div>
@@ -608,6 +700,14 @@ export default function MessagesPage() {
           {typingActive && <div className="px-4 sm:px-6 pb-2 text-xs text-[var(--color-text-muted)]">{activeThread.patientName} is typing...</div>}
           <div className={cn("border-t border-[var(--color-border)] p-4 bg-[var(--color-surface)]", mobile && "sticky bottom-0 z-10 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 px-3 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface)]/82 [padding-bottom:calc(env(safe-area-inset-bottom)+0.75rem)]")}>
             <div className={cn("flex flex-col sm:flex-row items-stretch sm:items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 sm:py-2 shadow-[0_8px_18px_rgba(15,23,42,0.06)]", mobile && "flex-row items-end gap-2 rounded-[28px] border-[var(--color-border)] px-3 py-2")}>
+              <button
+                type="button"
+                className="h-11 w-11 shrink-0 rounded-full border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text)]"
+                onClick={() => attachmentInputRef.current?.click()}
+                disabled={uploadingAttachment}
+              >
+                {uploadingAttachment ? "..." : "+"}
+              </button>
               <input
                 value={draft}
                 onChange={(e) => handleDraftChange(e.target.value)}
@@ -624,6 +724,13 @@ export default function MessagesPage() {
               <Button size="sm" className={cn("w-full sm:w-auto bg-[var(--color-primary)] text-[var(--color-on-primary)]", mobile && "h-11 w-11 shrink-0 rounded-full px-0 text-xs")} onClick={handleSend}>
                 Send
               </Button>
+              <input
+                ref={attachmentInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,application/pdf,.doc,.docx"
+                className="hidden"
+                onChange={(e) => handleAttachmentSelect(e.target.files?.[0] ?? null)}
+              />
             </div>
           </div>
         </>

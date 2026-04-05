@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthShell from "@/components/auth/AuthShell";
 import type { AuthPageConfig } from "@/types";
 import { fetchApi } from "@/lib/api";
 import { useCountries, useStates, useCities } from "@maphorbs/location-picker/react";
+import Avatar from "@/components/shared/Avatar";
 
 const config: AuthPageConfig = {
   role: "provider",
@@ -59,6 +60,8 @@ export default function ProviderCompleteProfilePage() {
   const [countryCode, setCountryCode] = useState("");
   const [stateCode, setStateCode] = useState("");
   const [cityId, setCityId] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { countries, loading: countriesLoading } = useCountries();
   const { states, loading: statesLoading } = useStates(countryCode);
   const { cities, loading: citiesLoading } = useCities(countryCode, stateCode);
@@ -115,6 +118,28 @@ export default function ProviderCompleteProfilePage() {
       setForm((prev) => ({ ...prev, [key]: event.target.value }));
   }
 
+  async function handleProfileImageChange(file?: File | null) {
+    if (!file) return;
+    setError("");
+    setUploadingImage(true);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const updated = await fetchApi("/providers/me/profile-image", {
+        method: "POST",
+        body,
+      });
+      setForm((prev) => ({ ...prev, profileImageUrl: updated?.profileImageUrl ?? "" }));
+    } catch (err: any) {
+      setError(err?.message || "Unable to upload profile photo.");
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  const initials = `${form.firstName?.[0] ?? ""}${form.lastName?.[0] ?? ""}`.trim().toUpperCase() || "DR";
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setLoading(true);
@@ -151,6 +176,44 @@ export default function ProviderCompleteProfilePage() {
           <p className="text-[var(--color-text-muted)] text-sm">
             This information will be reviewed by the admin team.
           </p>
+        </div>
+
+        <div className="rounded-[28px] border border-[color:var(--color-primary-soft-border)] bg-[linear-gradient(145deg,var(--color-primary-soft),rgba(255,255,255,0.96))] p-4 sm:p-5">
+          <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+            <Avatar initials={initials} imageUrl={form.profileImageUrl || undefined} color="purple" size="xl" rounded className="ring-4 ring-white/85 shadow-lg" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-[var(--color-text)]">Upload your profile photo</p>
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                Place your headshot up here so the signup flow feels cleaner on mobile and desktop.
+              </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingImage}
+                  className="rounded-xl bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-[var(--color-on-primary)] transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-60"
+                >
+                  {uploadingImage ? "Uploading..." : form.profileImageUrl ? "Change Photo" : "Choose Photo"}
+                </button>
+                {form.profileImageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, profileImageUrl: "" }))}
+                    className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm font-semibold text-[var(--color-text)] transition-colors hover:border-[var(--color-primary-soft-border)]"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(e) => handleProfileImageChange(e.target.files?.[0] ?? null)}
+              />
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -268,12 +331,6 @@ export default function ProviderCompleteProfilePage() {
           value={form.dateOfBirth}
           onChange={update("dateOfBirth")}
           placeholder="Date of birth (optional)"
-          className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm"
-        />
-        <input
-          value={form.profileImageUrl}
-          onChange={update("profileImageUrl")}
-          placeholder="Profile image URL (optional)"
           className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm"
         />
         <input

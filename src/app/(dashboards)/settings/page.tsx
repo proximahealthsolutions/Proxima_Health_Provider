@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Card, { CardHeader } from "@/components/shared/Card";
 import Button from "@/components/shared/Button";
 import { fetchApi } from "@/lib/api";
 import { useCountries, useStates, useCities } from "@maphorbs/location-picker/react";
+import Avatar from "@/components/shared/Avatar";
 
 type ProviderProfile = {
   id?: string;
@@ -33,6 +34,8 @@ export default function SettingsPage() {
   const [countryCode, setCountryCode] = useState("");
   const [stateCode, setStateCode] = useState("");
   const [cityId, setCityId] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { countries, loading: countriesLoading } = useCountries();
   const { states, loading: statesLoading } = useStates(countryCode);
   const { cities, loading: citiesLoading } = useCities(countryCode, stateCode);
@@ -109,6 +112,27 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleProfileImageChange(file?: File | null) {
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const updated = await fetchApi("/providers/me/profile-image", {
+        method: "POST",
+        body,
+      });
+      setProfile(updated);
+      setMessage("Profile image updated.");
+    } catch {
+      setMessage("Unable to upload profile image.");
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      window.setTimeout(() => setMessage(""), 2200);
+    }
+  }
+
   if (!profile) {
     return (
       <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-sm text-[var(--color-text-muted)]">
@@ -133,6 +157,50 @@ export default function SettingsPage() {
         >
           {saving ? "Saving..." : "Save Profile"}
         </Button>
+      </div>
+
+      <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5 shadow-[0_14px_30px_rgba(15,23,42,0.06)]">
+        <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+          <Avatar
+            initials={displayName.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "DR"}
+            imageUrl={profile.profileImageUrl ?? undefined}
+            color="purple"
+            size="xl"
+            rounded
+            className="ring-4 ring-white shadow-lg"
+          />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-[var(--color-text)]">Profile photo</p>
+            <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+              Use a real image picker here instead of pasting a URL. The card is tuned for mobile and desktop.
+            </p>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="w-full sm:w-auto bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:bg-[var(--color-primary-hover)]"
+              >
+                {uploadingImage ? "Uploading..." : profile.profileImageUrl ? "Change Photo" : "Choose Photo"}
+              </Button>
+              {profile.profileImageUrl && (
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={() => setField("profileImageUrl", "")}
+                >
+                  Remove
+                </Button>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={(e) => handleProfileImageChange(e.target.files?.[0] ?? null)}
+            />
+          </div>
+        </div>
       </div>
 
       {message && (
@@ -216,12 +284,6 @@ export default function SettingsPage() {
               onChange={(e) => setField("dateOfBirth", e.target.value)}
               placeholder="Date of birth"
               className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
-            />
-            <input
-              value={profile.profileImageUrl ?? ""}
-              onChange={(e) => setField("profileImageUrl", e.target.value)}
-              placeholder="Profile image URL"
-              className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] sm:col-span-2 focus:outline-none focus:border-[var(--color-primary)]"
             />
           </div>
         </Card>
