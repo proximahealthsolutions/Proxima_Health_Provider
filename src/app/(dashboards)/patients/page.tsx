@@ -18,6 +18,7 @@ const FILTERS: PatientFilter[] = ["All", "Active", "High Risk", "Recent"];
 export default function PatientsPage() {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<PatientFilter>("All");
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [acceptedCount, setAcceptedCount] = useState(0);
   const [patients, setPatients] = useState<PatientRow[]>([]);
@@ -148,8 +149,41 @@ export default function PatientsPage() {
                   className="bg-transparent text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] outline-none w-36"
                 />
               </div>
+              <div className="relative sm:hidden">
+                <button
+                  type="button"
+                  onClick={() => setMobileFilterOpen((value) => !value)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-text)]"
+                >
+                  <span className="text-sm leading-none">☰</span>
+                  {activeFilter}
+                </button>
+                {mobileFilterOpen && (
+                  <div className="absolute right-0 top-full z-20 mt-2 min-w-[11rem] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-xl">
+                    {FILTERS.map((f) => (
+                      <button
+                        key={f}
+                        type="button"
+                        onClick={() => {
+                          setActiveFilter(f);
+                          setMobileFilterOpen(false);
+                        }}
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors",
+                          activeFilter === f
+                            ? "bg-[var(--color-primary-soft)] text-[var(--color-primary)]"
+                            : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-soft)]"
+                        )}
+                      >
+                        <span>{f}</span>
+                        {activeFilter === f ? <span className="text-xs">•</span> : null}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               {/* Filters */}
-              <div className="flex gap-1">
+              <div className="hidden sm:flex gap-1">
                 {FILTERS.map((f) => (
                   <button
                     key={f}
@@ -169,7 +203,62 @@ export default function PatientsPage() {
           }
         />
 
-        <div className="overflow-x-auto">
+        <div className="space-y-3 sm:hidden px-4 pb-4">
+          {filtered.map((p, i) => (
+            <div
+              key={p.id ?? i}
+              className={cn(
+                "rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4",
+                p.status !== "Active" && "opacity-75"
+              )}
+            >
+              <div className="flex items-start gap-3">
+                <Avatar initials={p.init} color={p.color} size="sm" rounded={false} />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-bold text-[var(--color-text)]">{p.name}</div>
+                  <div className="text-xs text-[var(--color-text-muted)]">
+                    {p.age ?? "—"}y / {p.gender}
+                  </div>
+                </div>
+                <Badge variant={patientStatusVariant[p.status]}>{p.status}</Badge>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <div className="text-[var(--color-text-muted)]">Condition</div>
+                  <div className="mt-1 font-semibold text-[var(--color-text)]">{p.condition}</div>
+                </div>
+                <div>
+                  <div className="text-[var(--color-text-muted)]">Risk</div>
+                  <div className="mt-1"><Badge variant={riskVariant[p.risk]}>{p.risk}</Badge></div>
+                </div>
+                <div>
+                  <div className="text-[var(--color-text-muted)]">Last Visit</div>
+                  <div className="mt-1 font-semibold text-[var(--color-text)]">{p.lastVisit}</div>
+                </div>
+                <div>
+                  <div className="text-[var(--color-text-muted)]">Next Appt</div>
+                  <div className="mt-1 font-semibold text-[var(--color-primary)]">{p.nextVisit}</div>
+                </div>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => handleOpenProfile(p)}>
+                  Profile
+                </Button>
+                {p.status === "Active" && (
+                  <Button
+                    size="sm"
+                    className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-[var(--color-on-primary)]"
+                    onClick={() => router.push("/notes")}
+                  >
+                    Note
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--color-border)]">

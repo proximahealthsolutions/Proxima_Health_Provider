@@ -28,6 +28,8 @@ type ProviderProfile = {
 
 export default function SettingsPage() {
   const [profile, setProfile] = useState<ProviderProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [countryCode, setCountryCode] = useState("");
@@ -39,10 +41,22 @@ export default function SettingsPage() {
   const { states, loading: statesLoading } = useStates(countryCode);
   const { cities, loading: citiesLoading } = useCities(countryCode, stateCode);
 
+  async function loadProfile() {
+    setLoadingProfile(true);
+    setLoadError("");
+    try {
+      const data = await fetchApi("/providers/me");
+      setProfile(data || {});
+    } catch (error: any) {
+      setProfile(null);
+      setLoadError(error?.message || "Unable to load profile right now.");
+    } finally {
+      setLoadingProfile(false);
+    }
+  }
+
   useEffect(() => {
-    fetchApi("/providers/me")
-      .then((data) => setProfile(data || null))
-      .catch(() => setProfile(null));
+    loadProfile();
   }, []);
 
   useEffect(() => {
@@ -132,10 +146,35 @@ export default function SettingsPage() {
     }
   }
 
-  if (!profile) {
+  if (loadingProfile) {
     return (
       <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-sm text-[var(--color-text-muted)]">
         Loading profile...
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="space-y-4 rounded-2xl border border-[color:var(--color-danger-soft-border)] bg-[var(--color-surface)] p-6">
+        <div className="text-sm font-semibold text-[var(--color-danger)]">We could not load your profile.</div>
+        <div className="text-sm text-[var(--color-text-muted)]">{loadError}</div>
+        <div>
+          <Button
+            onClick={loadProfile}
+            className="bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:bg-[var(--color-primary-hover)]"
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-sm text-[var(--color-text-muted)]">
+        No profile data found.
       </div>
     );
   }

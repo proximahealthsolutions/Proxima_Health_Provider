@@ -53,6 +53,12 @@ export default function ProviderAuthPage() {
         method: "POST",
         body: JSON.stringify(data),
       });
+      if (resp.user?.role !== "PROVIDER") {
+        localStorage.removeItem("token");
+        document.cookie = "token=; Path=/; Max-Age=0; SameSite=Lax";
+        setError("This account belongs to the patient portal. Please sign in on the patient app.");
+        return;
+      }
       localStorage.setItem("token", resp.access_token);
       document.cookie = `token=${resp.access_token}; Path=/; SameSite=Lax`;
       router.push(config.dashboardRoute);
