@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AuthShell from "@/components/auth/AuthShell";
 import type { AuthPageConfig } from "@/types";
@@ -37,7 +37,7 @@ const config: AuthPageConfig = {
   },
 };
 
-export default function ProviderVerifyPage() {
+function ProviderVerifyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -121,5 +121,13 @@ export default function ProviderVerifyPage() {
         )}
       </div>
     </AuthShell>
+  );
+}
+
+export default function ProviderVerifyPage() {
+  return (
+    <Suspense fallback={null}>
+      <ProviderVerifyPageContent />
+    </Suspense>
   );
 }

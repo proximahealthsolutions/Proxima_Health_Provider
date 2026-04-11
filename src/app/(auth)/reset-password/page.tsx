@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AuthShell from "@/components/auth/AuthShell";
 import type { AuthPageConfig } from "@/types";
@@ -37,7 +37,7 @@ const config: AuthPageConfig = {
   },
 };
 
-export default function ProviderResetPasswordPage() {
+function ProviderResetPasswordPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") || "";
@@ -120,5 +120,13 @@ export default function ProviderResetPasswordPage() {
         </button>
       </form>
     </AuthShell>
+  );
+}
+
+export default function ProviderResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ProviderResetPasswordPageContent />
+    </Suspense>
   );
 }
