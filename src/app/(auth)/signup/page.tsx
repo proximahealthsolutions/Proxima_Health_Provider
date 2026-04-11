@@ -14,8 +14,8 @@ const config: AuthPageConfig = {
   features: [
     "Verify your email to start onboarding",
     "Complete your provider profile",
-    "Get approved by admins before going live",
-    "Manage patient bookings once approved",
+    "Access your dashboard right after verification",
+    "Manage patient bookings immediately",
   ],
   accentColor: {
     glow: "bg-[var(--color-accent-soft)]",
@@ -70,17 +70,14 @@ export default function ProviderSignupPage() {
     setLoading(true);
     try {
 
-      const resp = await fetchApi("/auth/providers/signup", {
+      await fetchApi("/auth/providers/signup", {
         method: "POST",
         body: JSON.stringify({
           email: form.email.trim(),
           password: form.password,
         }),
       });
-      if (resp.verificationToken) {
-        localStorage.setItem("verificationToken", resp.verificationToken);
-      }
-      router.push("/verify");
+      router.push(`/verify?email=${encodeURIComponent(form.email.trim())}`);
     } catch (err: any) {
       setError(err?.message || "Unable to create provider account.");
     } finally {
@@ -103,7 +100,7 @@ export default function ProviderSignupPage() {
             Join the Proxima network
           </h1>
           <p className="text-[var(--color-text-muted)] text-sm">
-            Enter your details so admins can review and approve your profile.
+            Create your account to verify your email and start using the provider portal.
           </p>
         </div>
 

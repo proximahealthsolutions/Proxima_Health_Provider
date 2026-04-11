@@ -16,7 +16,7 @@ const config: AuthPageConfig = {
   features: [
     "Complete your provider profile",
     "Confirm contact details",
-    "Submit for admin approval",
+    "Start seeing patients right away",
   ],
   accentColor: {
     glow: "bg-[var(--color-accent-soft)]",
@@ -152,7 +152,7 @@ export default function ProviderCompleteProfilePage() {
           age: Number(form.age),
         }),
       });
-      router.push("/under-review");
+      router.push("/provider");
     } catch (err: any) {
       setError(err?.message || "Unable to complete profile.");
     } finally {
@@ -174,7 +174,7 @@ export default function ProviderCompleteProfilePage() {
             Finish your provider profile
           </h1>
           <p className="text-[var(--color-text-muted)] text-sm">
-            This information will be reviewed by the admin team.
+            Fill in your details so patients can see accurate information.
           </p>
         </div>
 
@@ -352,7 +352,7 @@ export default function ProviderCompleteProfilePage() {
           disabled={loading}
           className="w-full py-3.5 rounded-xl text-sm font-bold tracking-wide transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-[var(--color-on-primary)]"
         >
-          {loading ? "Submitting..." : "Submit for approval"}
+          {loading ? "Saving..." : "Save and continue"}
         </button>
       </form>
     </AuthShell>

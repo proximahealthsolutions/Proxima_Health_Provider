@@ -14,6 +14,8 @@ export function proxy(request: NextRequest) {
       pathname === "/" ||
       pathname.startsWith("/signup") ||
       pathname.startsWith("/verify") ||
+      pathname.startsWith("/forgot-password") ||
+      pathname.startsWith("/reset-password") ||
       pathname.startsWith("/under-review") ||
       pathname.startsWith("/complete-profile");
     const hasToken = Boolean(request.cookies.get("token")?.value);

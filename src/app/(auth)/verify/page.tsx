@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import AuthShell from "@/components/auth/AuthShell";
 import type { AuthPageConfig } from "@/types";
 import { fetchApi } from "@/lib/api";
@@ -12,9 +12,9 @@ const config: AuthPageConfig = {
   icon: "🩺",
   tagline: "Provider Portal",
   features: [
-    "Verify your email to continue onboarding",
+    "Verify your email from your inbox",
     "Complete your provider profile",
-    "Await admin approval before onboarding patients",
+    "Access your dashboard right away",
   ],
   accentColor: {
     glow: "bg-[var(--color-accent-soft)]",
@@ -39,35 +39,46 @@ const config: AuthPageConfig = {
 
 export default function ProviderVerifyPage() {
   const router = useRouter();
-  const [token, setToken] = useState(
-    typeof window !== "undefined" ? localStorage.getItem("verificationToken") || "" : ""
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+  const email = searchParams.get("email") || "";
+  const [status, setStatus] = useState<"idle" | "verifying" | "success" | "error">(
+    token ? "verifying" : "idle"
   );
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleVerify(event: React.FormEvent) {
-    event.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const resp = await fetchApi("/auth/verify-email", {
-        method: "POST",
-        body: JSON.stringify({ token }),
-      });
-      localStorage.setItem("token", resp.access_token);
-      document.cookie = `token=${resp.access_token}; Path=/; SameSite=Lax`;
-      localStorage.removeItem("verificationToken");
-      router.push("/complete-profile");
-    } catch (err: any) {
-      setError(err?.message || "Verification failed. Please try again.");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (!token) return;
+
+    let cancelled = false;
+
+    async function verify() {
+      try {
+        const resp = await fetchApi("/auth/verify-email", {
+          method: "POST",
+          body: JSON.stringify({ token }),
+        });
+        if (cancelled) return;
+        localStorage.setItem("token", resp.access_token);
+        document.cookie = `token=${resp.access_token}; Path=/; SameSite=Lax`;
+        setStatus("success");
+        window.setTimeout(() => router.push("/complete-profile"), 1200);
+      } catch (err: any) {
+        if (cancelled) return;
+        setError(err?.message || "Verification failed. Please try the email link again.");
+        setStatus("error");
+      }
     }
-  }
+
+    verify();
+    return () => {
+      cancelled = true;
+    };
+  }, [router, token]);
 
   return (
     <AuthShell config={config}>
-      <form onSubmit={handleVerify} className="space-y-4 w-full">
+      <div className="space-y-4 w-full">
         <div className="mb-6">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--color-primary-soft)] border border-[var(--color-primary-soft-border)] mb-5">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-pulse" />
@@ -76,36 +87,39 @@ export default function ProviderVerifyPage() {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--color-text)] tracking-tight mb-1.5">
-            Enter verification code
+            {token ? "Verifying your email" : "Check your inbox"}
           </h1>
           <p className="text-[var(--color-text-muted)] text-sm">
-            Check your inbox for the verification code we sent.
+            {token
+              ? "We are confirming your provider account now."
+              : `We sent a verification email${email ? ` to ${email}` : ""}. Open it and click the link to continue.`}
           </p>
         </div>
 
-        <input
-          type="text"
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-          placeholder="Paste your verification code"
-          required
-          className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm"
-        />
-
-        {error && (
-          <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20">
-            <p className="text-red-400 text-[13px]">{error}</p>
+        {!token && (
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-4 text-sm text-[var(--color-text-muted)]">
+            The email link will verify your account and take you straight into profile completion.
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3.5 rounded-xl text-sm font-bold tracking-wide transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-[var(--color-on-primary)]"
-        >
-          {loading ? "Verifying..." : "Verify Email"}
-        </button>
-      </form>
+        {status === "verifying" && (
+          <div className="rounded-2xl border border-[var(--color-primary-soft-border)] bg-[var(--color-primary-soft)] px-5 py-4 text-sm text-[var(--color-primary)]">
+            Verifying your account...
+          </div>
+        )}
+
+        {status === "success" && (
+          <div className="rounded-2xl border border-[var(--color-accent-soft-border)] bg-[var(--color-accent-soft)] px-5 py-4 text-sm text-[var(--color-primary)]">
+            Email verified. Redirecting you now.
+          </div>
+        )}
+
+        {status === "error" && (
+          <div className="rounded-2xl border border-[color:var(--color-danger-soft-border)] bg-[var(--color-danger-soft)] px-5 py-4 text-sm text-[var(--color-danger)]">
+            {error}
+          </div>
+        )}
+      </div>
     </AuthShell>
   );
 }

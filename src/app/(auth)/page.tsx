@@ -55,17 +55,9 @@ export default function ProviderAuthPage() {
       });
       localStorage.setItem("token", resp.access_token);
       document.cookie = `token=${resp.access_token}; Path=/; SameSite=Lax`;
-      if (resp.user?.providerApprovalStatus && resp.user.providerApprovalStatus !== "APPROVED") {
-        router.push("/under-review");
-        return;
-      }
       router.push(config.dashboardRoute);
     } catch (err: any) {
       const message = err?.message || "Invalid credentials.";
-      if (message.toLowerCase().includes("validation") || message.toLowerCase().includes("approved")) {
-        router.push("/under-review");
-        return;
-      }
       setError(message);
     } finally {
       setLoading(false);

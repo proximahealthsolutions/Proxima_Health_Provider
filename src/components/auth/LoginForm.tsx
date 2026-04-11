@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { LoginFormProps } from "@/types";
 
 export default function LoginForm({ onSubmit, loading, error }: LoginFormProps) {
@@ -77,9 +78,9 @@ export default function LoginForm({ onSubmit, loading, error }: LoginFormProps) 
           <label className="block text-[11px] font-bold tracking-widest uppercase text-[var(--color-text-muted)]">
             Password
           </label>
-          <button type="button" className="text-[12px] text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors">
+          <Link href="/forgot-password" className="text-[12px] text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors">
             Forgot password?
-          </button>
+          </Link>
         </div>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">

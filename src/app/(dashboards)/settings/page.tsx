@@ -22,7 +22,6 @@ type ProviderProfile = {
   dateOfBirth?: string | null;
   profileImageUrl?: string | null;
   providerRecordNumber?: string | null;
-  providerApprovalStatus?: string | null;
   profileCompleted?: boolean | null;
   emailVerified?: boolean | null;
 };
@@ -218,10 +217,6 @@ export default function SettingsPage() {
               <div className="text-xs text-[var(--color-text-muted)]">{profile.email ?? "No email on file"}</div>
             </div>
             <div className="grid grid-cols-1 gap-2 text-xs text-[var(--color-text-muted)]">
-              <div className="flex justify-between">
-                <span>Approval</span>
-                <span className="text-[var(--color-text)]">{profile.providerApprovalStatus ?? "PENDING"}</span>
-              </div>
               <div className="flex justify-between">
                 <span>Email Verified</span>
                 <span className="text-[var(--color-text)]">{profile.emailVerified ? "Yes" : "No"}</span>
