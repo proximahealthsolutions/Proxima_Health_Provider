@@ -5,7 +5,7 @@ function extractApiErrorMessage(data: any) {
   if (typeof data.message === "string" && data.message.trim()) return data.message;
   if (Array.isArray(data.message) && data.message.length > 0) {
     return data.message
-      .map((item) => (typeof item === "string" ? item.trim() : ""))
+      .map((item: unknown) => (typeof item === "string" ? item.trim() : ""))
       .filter(Boolean)
       .join(", ");
   }
