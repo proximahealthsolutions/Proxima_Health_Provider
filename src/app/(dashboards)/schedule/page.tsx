@@ -340,7 +340,7 @@ export default function SchedulePage() {
               {weeklySchedule.map((day) => (
                 <div
                   key={day.weekday}
-                  className="rounded-2xl border border-[var(--color-border)] bg-white p-4"
+                  className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
                 >
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex items-center gap-3">
@@ -387,7 +387,7 @@ export default function SchedulePage() {
                           onChange={(e) =>
                             updateWeeklyDay(day.weekday, { startTime: e.target.value })
                           }
-                          className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm disabled:bg-[var(--color-surface-soft)] disabled:text-[var(--color-text-muted)]"
+                          className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] disabled:bg-[var(--color-surface-soft)] disabled:text-[var(--color-text-muted)]"
                         />
                         <input
                           type="time"
@@ -396,7 +396,7 @@ export default function SchedulePage() {
                           onChange={(e) =>
                             updateWeeklyDay(day.weekday, { endTime: e.target.value })
                           }
-                          className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm disabled:bg-[var(--color-surface-soft)] disabled:text-[var(--color-text-muted)]"
+                          className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] disabled:bg-[var(--color-surface-soft)] disabled:text-[var(--color-text-muted)]"
                         />
                       </div>
                       <div className="flex justify-end">
@@ -437,14 +437,14 @@ export default function SchedulePage() {
                 type="date"
                 value={overrideForm.date}
                 onChange={(e) => setOverrideForm((prev) => ({ ...prev, date: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm"
+                className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)]"
               />
               <select
                 value={overrideForm.isAvailable ? "open" : "blocked"}
                 onChange={(e) =>
                   setOverrideForm((prev) => ({ ...prev, isAvailable: e.target.value === "open" }))
                 }
-                className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm"
+                className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)]"
               >
                 <option value="blocked">Blocked</option>
                 <option value="open">Open time</option>
@@ -457,7 +457,7 @@ export default function SchedulePage() {
                     onChange={(e) =>
                       setOverrideForm((prev) => ({ ...prev, startTime: e.target.value }))
                     }
-                    className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm"
+                    className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)]"
                   />
                   <input
                     type="time"
@@ -465,7 +465,7 @@ export default function SchedulePage() {
                     onChange={(e) =>
                       setOverrideForm((prev) => ({ ...prev, endTime: e.target.value }))
                     }
-                    className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm"
+                    className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)]"
                   />
                 </div>
               )}
@@ -474,7 +474,7 @@ export default function SchedulePage() {
                 value={overrideForm.note}
                 onChange={(e) => setOverrideForm((prev) => ({ ...prev, note: e.target.value }))}
                 placeholder="Note (optional)"
-                className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm"
+                className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]"
               />
             </div>
             <Button className="bg-[var(--color-primary)] text-white" onClick={handleCreateOverride}>
