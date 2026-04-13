@@ -27,6 +27,7 @@ type ProviderProfile = {
 };
 
 export default function SettingsPage() {
+  const maxProfileImageSizeBytes = 10 * 1024 * 1024;
   const [profile, setProfile] = useState<ProviderProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -127,6 +128,12 @@ export default function SettingsPage() {
 
   async function handleProfileImageChange(file?: File | null) {
     if (!file) return;
+    if (file.size > maxProfileImageSizeBytes) {
+      setMessage("Profile image must be 10MB or smaller.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      window.setTimeout(() => setMessage(""), 2200);
+      return;
+    }
     setUploadingImage(true);
     try {
       const body = new FormData();
@@ -211,6 +218,9 @@ export default function SettingsPage() {
             <p className="text-sm font-semibold text-[var(--color-text)]">Profile photo</p>
             <p className="mt-1 text-xs text-[var(--color-text-muted)]">
               Use a real image picker here instead of pasting a URL. The card is tuned for mobile and desktop.
+            </p>
+            <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">
+              JPG, PNG, or WEBP up to 10MB.
             </p>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <Button

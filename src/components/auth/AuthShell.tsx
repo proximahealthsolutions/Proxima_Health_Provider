@@ -72,14 +72,14 @@ export default function AuthShell({ config, children }: AuthShellProps) {
       </div>
 
       {/* ── Right panel — form area ── */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-8 lg:px-10 py-6 sm:py-8 lg:py-12 overflow-y-auto relative">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-8 lg:px-10 xl:px-14 py-6 sm:py-8 lg:py-12 overflow-y-auto relative">
 
         {/* Subtle glow */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute top-[-120px] right-[-80px] w-[420px] h-[420px] rounded-full bg-[var(--color-accent-soft)] blur-[120px]" />
         </div>
 
-        <div className="relative z-10 w-full max-w-[420px] pt-4 sm:pt-2 lg:pt-0">
+        <div className="relative z-10 w-full max-w-[560px] xl:max-w-[680px] pt-4 sm:pt-2 lg:pt-0">
 
           {/* Mobile logo */}
           <div className="flex justify-center mb-6 sm:mb-8 lg:hidden">

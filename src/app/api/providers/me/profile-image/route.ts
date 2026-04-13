@@ -1,20 +1,23 @@
 import { NextResponse } from "next/server";
 
-const BACKEND_URL = process.env.BACKEND_URL ?? "https://proxima-health-backend.onrender.com/api";
+const BACKEND_URL = process.env.BACKEND_URL ?? "https://api-prod.proximahealthng.com/api";
+export const runtime = "nodejs";
 
 function buildAuthHeaders(request: Request) {
   const auth = request.headers.get("authorization");
-  return auth ? { Authorization: auth } : undefined;
+  const contentType = request.headers.get("content-type");
+  return {
+    ...(auth ? { Authorization: auth } : {}),
+    ...(contentType ? { "Content-Type": contentType } : {}),
+  };
 }
 
 export async function POST(request: Request) {
-  const formData = await request.formData();
   const response = await fetch(`${BACKEND_URL}/providers/me/profile-image`, {
     method: "POST",
-    headers: {
-      ...(buildAuthHeaders(request) ?? {}),
-    },
-    body: formData,
+    headers: buildAuthHeaders(request),
+    body: request.body,
+    duplex: "half",
   });
 
   const data = await response.json().catch(() => ({}));

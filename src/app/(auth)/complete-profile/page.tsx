@@ -40,6 +40,7 @@ const config: AuthPageConfig = {
 };
 
 export default function ProviderCompleteProfilePage() {
+  const maxProfileImageSizeBytes = 10 * 1024 * 1024;
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -120,6 +121,11 @@ export default function ProviderCompleteProfilePage() {
 
   async function handleProfileImageChange(file?: File | null) {
     if (!file) return;
+    if (file.size > maxProfileImageSizeBytes) {
+      setError("Profile image must be 10MB or smaller.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     setError("");
     setUploadingImage(true);
     try {
@@ -185,6 +191,9 @@ export default function ProviderCompleteProfilePage() {
               <p className="text-sm font-semibold text-[var(--color-text)]">Upload your profile photo</p>
               <p className="mt-1 text-xs text-[var(--color-text-muted)]">
                 Place your headshot up here so the signup flow feels cleaner on mobile and desktop.
+              </p>
+              <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">
+                JPG, PNG, or WEBP up to 10MB.
               </p>
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                 <button
