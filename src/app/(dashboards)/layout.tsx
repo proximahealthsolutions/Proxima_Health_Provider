@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text)]">
+    <div className="min-h-dvh w-full overflow-x-hidden bg-[var(--color-bg)] text-[var(--color-text)]">
       {children}
     </div>
   );

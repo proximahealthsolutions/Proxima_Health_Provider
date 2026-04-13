@@ -55,7 +55,7 @@ export default function ProviderShell() {
   return (
     <ProviderUiProvider value={actions}>
       <ProviderCallProvider>
-      <div className="flex min-h-dvh overflow-hidden bg-[var(--color-bg)]">
+      <div className="flex min-h-dvh w-full overflow-hidden bg-[var(--color-bg)]">
       {/* ── Sidebar ─────────────────────────────────────────────────────── */}
       <ProviderSidebar
         activePage={activePage}

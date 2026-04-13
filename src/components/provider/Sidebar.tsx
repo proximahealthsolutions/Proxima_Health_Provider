@@ -128,7 +128,7 @@ export default function ProviderSidebar({
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 h-full w-64 z-30 flex flex-col",
+          "fixed inset-y-0 left-0 h-dvh w-64 z-30 flex flex-col lg:h-auto lg:min-h-dvh",
           "bg-[var(--color-surface)] border-r border-[var(--color-border)]",
           "transition-transform duration-300 ease-in-out",
           "lg:translate-x-0 lg:static lg:z-auto",
