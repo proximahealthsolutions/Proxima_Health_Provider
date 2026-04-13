@@ -23,30 +23,25 @@ import { createProviderLabOrder } from "@/services/provider-laborders.service";
 import { createProviderPrescription } from "@/services/provider-prescriptions.service";
 import {
   AvailabilityOverride,
-  AvailabilityRule,
   createAvailabilityOverride,
-  createAvailabilityRule,
   getAvailabilityOverrides,
-  getAvailabilityRules,
+  getWeeklyAvailability,
+  saveWeeklyAvailability,
+  WeeklyAvailabilityDay,
 } from "@/services/provider-availability.service";
 import { useProviderUi } from "@/components/provider/ProviderUiContext";
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DEFAULT_DAY_HOURS = { startTime: "08:00", endTime: "17:00" };
 
 export default function SchedulePage() {
   const [bookings, setBookings] = useState<ProviderBooking[]>([]);
-  const [rules, setRules] = useState<AvailabilityRule[]>([]);
+  const [weeklySchedule, setWeeklySchedule] = useState<WeeklyAvailabilityDay[]>([]);
   const [overrides, setOverrides] = useState<AvailabilityOverride[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyBookingId, setBusyBookingId] = useState<string | null>(null);
+  const [savingWeekly, setSavingWeekly] = useState(false);
   const [flashMessage, setFlashMessage] = useState("");
-  const [ruleForm, setRuleForm] = useState({
-    weekday: 1,
-    startTime: "08:00",
-    endTime: "17:00",
-    startDate: new Date().toISOString().slice(0, 10),
-    endDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-  });
   const [overrideForm, setOverrideForm] = useState({
     date: new Date().toISOString().slice(0, 10),
     isAvailable: false,
@@ -60,19 +55,37 @@ export default function SchedulePage() {
     let mounted = true;
     (async () => {
       try {
-        const [bookingData, ruleData, overrideData] = await Promise.all([
+        const [bookingData, weeklyData, overrideData] = await Promise.all([
           getProviderBookings(),
-          getAvailabilityRules(),
+          getWeeklyAvailability(),
           getAvailabilityOverrides(),
         ]);
         if (!mounted) return;
         setBookings(bookingData);
-        setRules(ruleData);
+        setWeeklySchedule(
+          Array.isArray(weeklyData) && weeklyData.length === 7
+            ? weeklyData
+            : Array.from({ length: 7 }, (_, weekday) => ({
+                weekday,
+                enabled: false,
+                startTime: null,
+                endTime: null,
+                ruleId: null,
+              }))
+        );
         setOverrides(overrideData);
       } catch {
         if (!mounted) return;
         setBookings([]);
-        setRules([]);
+        setWeeklySchedule(
+          Array.from({ length: 7 }, (_, weekday) => ({
+            weekday,
+            enabled: false,
+            startTime: null,
+            endTime: null,
+            ruleId: null,
+          }))
+        );
         setOverrides([]);
       } finally {
         if (!mounted) return;
@@ -174,10 +187,22 @@ export default function SchedulePage() {
     window.setTimeout(() => setFlashMessage(""), 2400);
   }
 
-  async function handleCreateRule() {
-    const created = await createAvailabilityRule(ruleForm);
-    setRules((prev) => [created, ...prev]);
-    setFlashMessage("Availability rule saved.");
+  async function handleSaveWeeklySchedule() {
+    setSavingWeekly(true);
+    try {
+      const saved = await saveWeeklyAvailability({
+        days: weeklySchedule.map((day) => ({
+          weekday: day.weekday,
+          enabled: day.enabled,
+          startTime: day.enabled ? day.startTime : null,
+          endTime: day.enabled ? day.endTime : null,
+        })),
+      });
+      setWeeklySchedule(saved);
+      setFlashMessage("Weekly schedule saved.");
+    } finally {
+      setSavingWeekly(false);
+    }
     window.setTimeout(() => setFlashMessage(""), 2400);
   }
 
@@ -195,6 +220,28 @@ export default function SchedulePage() {
   const acceptedBookings = bookings.filter(
     (b) => b.status === "accepted" || b.status === "in_progress"
   );
+
+  const activeDaysCount = weeklySchedule.filter((day) => day.enabled).length;
+
+  function updateWeeklyDay(
+    weekday: number,
+    updates: Partial<Pick<WeeklyAvailabilityDay, "enabled" | "startTime" | "endTime">>
+  ) {
+    setWeeklySchedule((prev) =>
+      prev.map((day) => {
+        if (day.weekday !== weekday) return day;
+        const nextEnabled = updates.enabled ?? day.enabled;
+        const nextStart = updates.startTime ?? day.startTime ?? DEFAULT_DAY_HOURS.startTime;
+        const nextEnd = updates.endTime ?? day.endTime ?? DEFAULT_DAY_HOURS.endTime;
+        return {
+          ...day,
+          enabled: nextEnabled,
+          startTime: nextEnabled ? nextStart : null,
+          endTime: nextEnabled ? nextEnd : null,
+        };
+      })
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -241,62 +288,101 @@ export default function SchedulePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader title="Set Weekly Availability" subtitle="Add recurring availability windows." />
+          <CardHeader
+            title="Weekly Availability"
+            subtitle="Choose the days you work and set one-hour booking windows for each day."
+          />
           <div className="p-4 sm:p-5 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <select
-                value={ruleForm.weekday}
-                onChange={(e) => setRuleForm((prev) => ({ ...prev, weekday: Number(e.target.value) }))}
-                className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm"
-              >
-                {WEEKDAYS.map((day, idx) => (
-                  <option key={day} value={idx}>
-                    {day}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="date"
-                value={ruleForm.startDate}
-                onChange={(e) => setRuleForm((prev) => ({ ...prev, startDate: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm"
-              />
-              <input
-                type="date"
-                value={ruleForm.endDate}
-                onChange={(e) => setRuleForm((prev) => ({ ...prev, endDate: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm"
-              />
-              <div className="flex gap-2">
-                <input
-                  type="time"
-                  value={ruleForm.startTime}
-                  onChange={(e) => setRuleForm((prev) => ({ ...prev, startTime: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm"
-                />
-                <input
-                  type="time"
-                  value={ruleForm.endTime}
-                  onChange={(e) => setRuleForm((prev) => ({ ...prev, endTime: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm"
-                />
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--color-text)]">
+                    {activeDaysCount} of 7 days open
+                  </p>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                    Patients will choose an available date first, then see one-hour time slots.
+                  </p>
+                </div>
+                <Badge variant="gray">1-hour slots</Badge>
               </div>
             </div>
-            <Button className="bg-[var(--color-primary)] text-white" onClick={handleCreateRule}>
-              Save Rule
-            </Button>
-            <div className="space-y-2 text-sm text-[var(--color-text-muted)]">
-              {rules.length === 0 && <div>No rules yet.</div>}
-              {rules.map((rule) => (
-                <div key={rule.id} className="flex items-center justify-between">
-                  <span>
-                    {WEEKDAYS[rule.weekday]} {rule.startTime}–{rule.endTime}
-                  </span>
-                  <span className="text-xs">
-                    {rule.startDate.slice(0, 10)} → {rule.endDate.slice(0, 10)}
-                  </span>
+            <div className="space-y-3">
+              {weeklySchedule.map((day) => (
+                <div
+                  key={day.weekday}
+                  className="rounded-2xl border border-[var(--color-border)] bg-white p-4"
+                >
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateWeeklyDay(day.weekday, {
+                            enabled: !day.enabled,
+                            startTime: day.startTime ?? DEFAULT_DAY_HOURS.startTime,
+                            endTime: day.endTime ?? DEFAULT_DAY_HOURS.endTime,
+                          })
+                        }
+                        className={cn(
+                          "relative inline-flex h-7 w-12 items-center rounded-full transition",
+                          day.enabled
+                            ? "bg-[var(--color-primary)]"
+                            : "bg-[var(--color-border)]"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "inline-block h-5 w-5 transform rounded-full bg-white transition",
+                            day.enabled ? "translate-x-6" : "translate-x-1"
+                          )}
+                        />
+                      </button>
+                      <div>
+                        <p className="font-semibold text-[var(--color-text)]">
+                          {WEEKDAYS[day.weekday]}
+                        </p>
+                        <p className="text-xs text-[var(--color-text-muted)]">
+                          {day.enabled
+                            ? `${day.startTime ?? DEFAULT_DAY_HOURS.startTime} to ${day.endTime ?? DEFAULT_DAY_HOURS.endTime}`
+                            : "Closed"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 sm:w-auto sm:min-w-[240px]">
+                      <input
+                        type="time"
+                        value={day.startTime ?? DEFAULT_DAY_HOURS.startTime}
+                        disabled={!day.enabled}
+                        onChange={(e) =>
+                          updateWeeklyDay(day.weekday, { startTime: e.target.value })
+                        }
+                        className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm disabled:bg-[var(--color-surface-soft)] disabled:text-[var(--color-text-muted)]"
+                      />
+                      <input
+                        type="time"
+                        value={day.endTime ?? DEFAULT_DAY_HOURS.endTime}
+                        disabled={!day.enabled}
+                        onChange={(e) =>
+                          updateWeeklyDay(day.weekday, { endTime: e.target.value })
+                        }
+                        className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm disabled:bg-[var(--color-surface-soft)] disabled:text-[var(--color-text-muted)]"
+                      />
+                    </div>
+                  </div>
                 </div>
               ))}
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs text-[var(--color-text-muted)]">
+                A booked hour is automatically removed from patient availability.
+              </p>
+              <Button
+                className="bg-[var(--color-primary)] text-white"
+                onClick={handleSaveWeeklySchedule}
+                disabled={savingWeekly}
+              >
+                {savingWeekly ? "Saving..." : "Save Weekly Schedule"}
+              </Button>
             </div>
           </div>
         </Card>

@@ -10,6 +10,14 @@ export type AvailabilityRule = {
   timezone?: string | null;
 };
 
+export type WeeklyAvailabilityDay = {
+  weekday: number;
+  enabled: boolean;
+  startTime: string | null;
+  endTime: string | null;
+  ruleId: string | null;
+};
+
 export type AvailabilityOverride = {
   id: string;
   date: string;
@@ -18,6 +26,26 @@ export type AvailabilityOverride = {
   endTime?: string | null;
   note?: string | null;
 };
+
+export async function getWeeklyAvailability(): Promise<WeeklyAvailabilityDay[]> {
+  const resp = await fetchApi("/providers/schedule/weekly");
+  return Array.isArray(resp) ? resp : [];
+}
+
+export async function saveWeeklyAvailability(payload: {
+  days: Array<{
+    weekday: number;
+    enabled: boolean;
+    startTime?: string | null;
+    endTime?: string | null;
+  }>;
+}): Promise<WeeklyAvailabilityDay[]> {
+  const resp = await fetchApi("/providers/schedule/weekly", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return Array.isArray(resp) ? resp : [];
+}
 
 export async function getAvailabilityRules(): Promise<AvailabilityRule[]> {
   const resp = await fetchApi("/providers/schedule/rules");
