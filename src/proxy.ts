@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const BACKEND_URL = process.env.BACKEND_URL ?? "https://proxima-health-backend.onrender.com/api";
+const BACKEND_URL = process.env.BACKEND_URL ?? "https://api-prod.proximahealthng.com/api";
 const REQUIRED_ROLE = "PROVIDER";
 
 function decodeBase64Url(value: string) {
@@ -71,4 +71,5 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: "/:path*",
 };
+
 
