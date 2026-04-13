@@ -200,6 +200,8 @@ export default function SchedulePage() {
       });
       setWeeklySchedule(saved);
       setFlashMessage("Weekly schedule saved.");
+    } catch (err: any) {
+      setFlashMessage(err?.message || "Unable to save weekly schedule.");
     } finally {
       setSavingWeekly(false);
     }
@@ -207,9 +209,13 @@ export default function SchedulePage() {
   }
 
   async function handleCreateOverride() {
-    const created = await createAvailabilityOverride(overrideForm);
-    setOverrides((prev) => [created, ...prev]);
-    setFlashMessage("Override saved.");
+    try {
+      const created = await createAvailabilityOverride(overrideForm);
+      setOverrides((prev) => [created, ...prev]);
+      setFlashMessage("Override saved.");
+    } catch (err: any) {
+      setFlashMessage(err?.message || "Unable to save override.");
+    }
     window.setTimeout(() => setFlashMessage(""), 2400);
   }
 
@@ -240,6 +246,25 @@ export default function SchedulePage() {
           endTime: nextEnabled ? nextEnd : null,
         };
       })
+    );
+  }
+
+  function handleClearDay(weekday: number) {
+    updateWeeklyDay(weekday, {
+      enabled: false,
+      startTime: null,
+      endTime: null,
+    });
+  }
+
+  function handleClearAll() {
+    setWeeklySchedule((prev) =>
+      prev.map((day) => ({
+        ...day,
+        enabled: false,
+        startTime: null,
+        endTime: null,
+      }))
     );
   }
 
@@ -303,7 +328,12 @@ export default function SchedulePage() {
                     Patients will choose an available date first, then see one-hour time slots.
                   </p>
                 </div>
-                <Badge variant="gray">1-hour slots</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="gray">1-hour slots</Badge>
+                  <Button variant="outline" size="sm" onClick={handleClearAll}>
+                    Clear All
+                  </Button>
+                </div>
               </div>
             </div>
             <div className="space-y-3">
@@ -348,25 +378,37 @@ export default function SchedulePage() {
                         </p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 sm:w-auto sm:min-w-[240px]">
-                      <input
-                        type="time"
-                        value={day.startTime ?? DEFAULT_DAY_HOURS.startTime}
-                        disabled={!day.enabled}
-                        onChange={(e) =>
-                          updateWeeklyDay(day.weekday, { startTime: e.target.value })
-                        }
-                        className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm disabled:bg-[var(--color-surface-soft)] disabled:text-[var(--color-text-muted)]"
-                      />
-                      <input
-                        type="time"
-                        value={day.endTime ?? DEFAULT_DAY_HOURS.endTime}
-                        disabled={!day.enabled}
-                        onChange={(e) =>
-                          updateWeeklyDay(day.weekday, { endTime: e.target.value })
-                        }
-                        className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm disabled:bg-[var(--color-surface-soft)] disabled:text-[var(--color-text-muted)]"
-                      />
+                    <div className="flex flex-col gap-2 sm:min-w-[320px]">
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="time"
+                          value={day.startTime ?? DEFAULT_DAY_HOURS.startTime}
+                          disabled={!day.enabled}
+                          onChange={(e) =>
+                            updateWeeklyDay(day.weekday, { startTime: e.target.value })
+                          }
+                          className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm disabled:bg-[var(--color-surface-soft)] disabled:text-[var(--color-text-muted)]"
+                        />
+                        <input
+                          type="time"
+                          value={day.endTime ?? DEFAULT_DAY_HOURS.endTime}
+                          disabled={!day.enabled}
+                          onChange={(e) =>
+                            updateWeeklyDay(day.weekday, { endTime: e.target.value })
+                          }
+                          className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm disabled:bg-[var(--color-surface-soft)] disabled:text-[var(--color-text-muted)]"
+                        />
+                      </div>
+                      <div className="flex justify-end">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleClearDay(day.weekday)}
+                          disabled={!day.enabled}
+                        >
+                          Clear Day
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -374,7 +416,7 @@ export default function SchedulePage() {
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-[var(--color-text-muted)]">
-                A booked hour is automatically removed from patient availability.
+                You can clear a day or all days, but booked future slots stay protected.
               </p>
               <Button
                 className="bg-[var(--color-primary)] text-white"
