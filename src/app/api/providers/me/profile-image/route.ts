@@ -13,11 +13,15 @@ function buildAuthHeaders(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const response = await fetch(`${BACKEND_URL}/providers/me/profile-image`, {
+  const init = {
     method: "POST",
     headers: buildAuthHeaders(request),
     body: request.body,
-    duplex: "half",
+    duplex: "half" as const,
+  } as RequestInit & { duplex: "half" };
+
+  const response = await fetch(`${BACKEND_URL}/providers/me/profile-image`, {
+    ...init,
   });
 
   const data = await response.json().catch(() => ({}));
