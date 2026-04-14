@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const BACKEND_URL = process.env.BACKEND_URL ?? "https://proxima-health-backend.onrender.com/api";
+const BACKEND_URL = process.env.BACKEND_URL ?? "https://api-prod.proximahealthng.com/api";
 
 export async function POST(request: Request) {
   const body = await request.text();

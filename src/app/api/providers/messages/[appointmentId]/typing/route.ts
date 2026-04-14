@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_URL = process.env.BACKEND_URL ?? "https://proxima-health-backend.onrender.com/api";
+const BACKEND_URL = process.env.BACKEND_URL ?? "https://api-prod.proximahealthng.com/api";
 
 function buildAuthHeaders(request: Request) {
   const auth = request.headers.get("authorization");
