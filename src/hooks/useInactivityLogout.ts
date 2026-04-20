@@ -17,7 +17,7 @@ export function useInactivityLogout(
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    let timeoutId: ReturnType<typeof window.setTimeout> | null = null;
+    let timeoutId: number | null = null;
 
     const startTimer = () => {
       if (timeoutId) {
