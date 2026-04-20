@@ -6,6 +6,9 @@ import Button from "@/components/shared/Button";
 import { fetchApi } from "@/lib/api";
 import { useCountries, useStates, useCities } from "@maphorbs/location-picker/react";
 import Avatar from "@/components/shared/Avatar";
+import { logoutProviderSession } from "@/lib/session";
+
+type SettingsView = "profile" | "password";
 
 type ProviderProfile = {
   id?: string;
@@ -39,6 +42,13 @@ export default function SettingsPage() {
   const [stateCode, setStateCode] = useState("");
   const [cityId, setCityId] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [activeView, setActiveView] = useState<SettingsView>("profile");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { countries, loading: countriesLoading } = useCountries();
   const { states, loading: statesLoading } = useStates(countryCode);
@@ -159,6 +169,49 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleChangePassword() {
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setMessage("Enter your current, new, and confirm password.");
+      window.setTimeout(() => setMessage(""), 2200);
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      setMessage("New password must be at least 8 characters.");
+      window.setTimeout(() => setMessage(""), 2200);
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setMessage("New password and confirm password do not match.");
+      window.setTimeout(() => setMessage(""), 2200);
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      await fetchApi("/auth/change-password", {
+        method: "PATCH",
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+        }),
+      });
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setMessage("Password updated. Please sign in again.");
+      await logoutProviderSession();
+    } catch (error: any) {
+      setMessage(error?.message || "Unable to update password.");
+    } finally {
+      setChangingPassword(false);
+      window.setTimeout(() => setMessage(""), 2200);
+    }
+  }
+
   if (loadingProfile) {
     return (
       <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-sm text-[var(--color-text-muted)]">
@@ -201,13 +254,49 @@ export default function SettingsPage() {
             Keep your provider details accurate for patients and the care team.
           </p>
         </div>
-        <Button
-          onClick={handleSave}
-          disabled={saving}
-          className="bg-[var(--color-surface)] text-[var(--color-primary)] hover:bg-[var(--color-primary-soft)]"
-        >
-          {saving ? "Saving..." : "Save Profile"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-2xl border border-white/20 bg-white/10 p-1">
+            <button
+              type="button"
+              onClick={() => setActiveView("profile")}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
+                activeView === "profile"
+                  ? "bg-[var(--color-surface)] text-[var(--color-primary)]"
+                  : "text-[var(--color-on-primary)] hover:bg-white/10"
+              }`}
+            >
+              Profile
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveView("password")}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
+                activeView === "password"
+                  ? "bg-[var(--color-surface)] text-[var(--color-primary)]"
+                  : "text-[var(--color-on-primary)] hover:bg-white/10"
+              }`}
+            >
+              Reset Password
+            </button>
+          </div>
+          {activeView === "profile" ? (
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-[var(--color-surface)] text-[var(--color-primary)] hover:bg-[var(--color-primary-soft)]"
+            >
+              {saving ? "Saving..." : "Save Profile"}
+            </Button>
+          ) : (
+            <Button
+              onClick={handleChangePassword}
+              disabled={changingPassword}
+              className="bg-[var(--color-surface)] text-[var(--color-primary)] hover:bg-[var(--color-primary-soft)]"
+            >
+              {changingPassword ? "Updating..." : "Update Password"}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5 shadow-[0_14px_30px_rgba(15,23,42,0.06)]">
@@ -263,176 +352,248 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader title="Overview" subtitle="Current account snapshot" />
-          <div className="px-5 pb-5 space-y-3">
-            <div>
-              <div className="text-sm font-semibold text-[var(--color-text)]">{displayName}</div>
-              <div className="text-xs text-[var(--color-text-muted)]">{profile.email ?? "No email on file"}</div>
+      {activeView === "profile" ? (
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader title="Overview" subtitle="Current account snapshot" />
+            <div className="px-5 pb-5 space-y-3">
+              <div>
+                <div className="text-sm font-semibold text-[var(--color-text)]">{displayName}</div>
+                <div className="text-xs text-[var(--color-text-muted)]">{profile.email ?? "No email on file"}</div>
+              </div>
+              <div className="grid grid-cols-1 gap-2 text-xs text-[var(--color-text-muted)]">
+                <div className="flex justify-between">
+                  <span>Email Verified</span>
+                  <span className="text-[var(--color-text)]">{profile.emailVerified ? "Yes" : "No"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Profile Completed</span>
+                  <span className="text-[var(--color-text)]">{profile.profileCompleted ? "Yes" : "No"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Record Number</span>
+                  <span className="text-[var(--color-text)]">{profile.providerRecordNumber ?? "—"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Gender</span>
+                  <span className="text-[var(--color-text)]">{profile.gender ?? "—"}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span>Address</span>
+                  <span className="text-right text-[var(--color-text)]">{profile.address ?? "—"}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span>Street</span>
+                  <span className="text-right text-[var(--color-text)]">{profile.street ?? "—"}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span>Location</span>
+                  <span className="text-right text-[var(--color-text)]">
+                    {[profile.city, profile.state, profile.country].filter(Boolean).join(", ") || "—"}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-1 gap-2 text-xs text-[var(--color-text-muted)]">
-              <div className="flex justify-between">
-                <span>Email Verified</span>
-                <span className="text-[var(--color-text)]">{profile.emailVerified ? "Yes" : "No"}</span>
+          </Card>
+
+          <Card className="xl:col-span-2">
+            <CardHeader title="Personal Details" subtitle="Basic details visible across the portal" />
+            <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                value={profile.firstName ?? ""}
+                onChange={(e) => setField("firstName", e.target.value)}
+                placeholder="First name"
+                className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
+              />
+              <input
+                value={profile.lastName ?? ""}
+                onChange={(e) => setField("lastName", e.target.value)}
+                placeholder="Last name"
+                className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
+              />
+              <input
+                value={profile.email ?? ""}
+                disabled
+                placeholder="Email"
+                className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text-muted)] bg-[var(--color-surface-soft)] sm:col-span-2"
+              />
+              <input
+                value={profile.phone ?? ""}
+                onChange={(e) => setField("phone", e.target.value)}
+                placeholder="Phone"
+                className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
+              />
+              <select
+                value={profile.gender ?? ""}
+                onChange={(e) => setField("gender", e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
+              >
+                <option value="">Gender</option>
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+                <option value="Other">Other</option>
+              </select>
+              <input
+                value={profile.dateOfBirth ?? ""}
+                onChange={(e) => setField("dateOfBirth", e.target.value)}
+                placeholder="Date of birth"
+                className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
+              />
+            </div>
+          </Card>
+
+          <Card className="xl:col-span-2">
+            <CardHeader title="Address & Contact" subtitle="Location and reachability details" />
+            <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                value={profile.address ?? ""}
+                onChange={(e) => setField("address", e.target.value)}
+                placeholder="Address"
+                className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] sm:col-span-2 focus:outline-none focus:border-[var(--color-primary)]"
+              />
+              <input
+                value={profile.street ?? ""}
+                onChange={(e) => setField("street", e.target.value)}
+                placeholder="Street"
+                className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
+              />
+              <select
+                value={countryCode}
+                onChange={(e) => {
+                  const code = e.target.value;
+                  setCountryCode(code);
+                  setStateCode("");
+                  setCityId("");
+                  const country = countries.find((c) => c.iso2 === code)?.name ?? "";
+                  setField("country", country);
+                  setField("state", "");
+                  setField("city", "");
+                }}
+                className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
+              >
+                <option value="">{countriesLoading ? "Loading countries..." : "Select country"}</option>
+                {countries.map((country) => (
+                  <option key={country.iso2} value={country.iso2}>
+                    {country.emoji} {country.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={stateCode}
+                onChange={(e) => {
+                  const code = e.target.value;
+                  setStateCode(code);
+                  setCityId("");
+                  const stateName = states.find((s) => s.state_code === code)?.name ?? "";
+                  setField("state", stateName);
+                  setField("city", "");
+                }}
+                disabled={!countryCode || statesLoading}
+                className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
+              >
+                <option value="">
+                  {!countryCode ? "Select country first" : statesLoading ? "Loading states..." : "Select state"}
+                </option>
+                {states.map((state) => (
+                  <option key={state.state_code} value={state.state_code}>
+                    {state.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={cityId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setCityId(id);
+                  const cityName = cities.find((c) => String(c.id) === id)?.name ?? "";
+                  setField("city", cityName);
+                }}
+                disabled={!stateCode || citiesLoading}
+                className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
+              >
+                <option value="">
+                  {!stateCode ? "Select state first" : citiesLoading ? "Loading cities..." : "Select city"}
+                </option>
+                {cities.map((city) => (
+                  <option key={city.id} value={city.id}>
+                    {city.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </Card>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-6">
+          <Card>
+            <CardHeader title="Security" subtitle="Protect your physician account" />
+            <div className="px-5 pb-5 space-y-4 text-sm text-[var(--color-text-muted)]">
+              <div className="rounded-2xl border border-[color:var(--color-primary-soft-border)] bg-[var(--color-primary-soft)] px-4 py-3">
+                <p className="font-semibold text-[var(--color-primary)]">Password update</p>
+                <p className="mt-1 text-xs text-[var(--color-primary)]/80">
+                  Enter your current password, then set a new password for this physician dashboard.
+                </p>
               </div>
-              <div className="flex justify-between">
-                <span>Profile Completed</span>
-                <span className="text-[var(--color-text)]">{profile.profileCompleted ? "Yes" : "No"}</span>
+              <div>
+                <p className="text-[11px] uppercase tracking-widest text-[var(--color-text-muted)]">Account</p>
+                <p className="text-[var(--color-text)] font-semibold">{profile.email ?? "—"}</p>
               </div>
-              <div className="flex justify-between">
-                <span>Record Number</span>
-                <span className="text-[var(--color-text)]">{profile.providerRecordNumber ?? "—"}</span>
+              <div>
+                <p className="text-[11px] uppercase tracking-widest text-[var(--color-text-muted)]">Signed in as</p>
+                <p className="text-[var(--color-text)] font-semibold">{displayName}</p>
               </div>
-              <div className="flex justify-between">
-                <span>Gender</span>
-                <span className="text-[var(--color-text)]">{profile.gender ?? "—"}</span>
-              </div>
-              <div className="flex justify-between gap-3">
-                <span>Address</span>
-                <span className="text-right text-[var(--color-text)]">{profile.address ?? "—"}</span>
-              </div>
-              <div className="flex justify-between gap-3">
-                <span>Street</span>
-                <span className="text-right text-[var(--color-text)]">{profile.street ?? "—"}</span>
-              </div>
-              <div className="flex justify-between gap-3">
-                <span>Location</span>
-                <span className="text-right text-[var(--color-text)]">
-                  {[profile.city, profile.state, profile.country].filter(Boolean).join(", ") || "—"}
-                </span>
+              <div>
+                <p className="text-[11px] uppercase tracking-widest text-[var(--color-text-muted)]">What happens next</p>
+                <p className="text-[var(--color-text)]">
+                  Once your password changes, you will be signed out automatically and will need to sign in again.
+                </p>
               </div>
             </div>
-          </div>
-        </Card>
+          </Card>
 
-        <Card className="xl:col-span-2">
-          <CardHeader title="Personal Details" subtitle="Basic details visible across the portal" />
-          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input
-              value={profile.firstName ?? ""}
-              onChange={(e) => setField("firstName", e.target.value)}
-              placeholder="First name"
-              className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
-            />
-            <input
-              value={profile.lastName ?? ""}
-              onChange={(e) => setField("lastName", e.target.value)}
-              placeholder="Last name"
-              className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
-            />
-            <input
-              value={profile.email ?? ""}
-              disabled
-              placeholder="Email"
-              className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text-muted)] bg-[var(--color-surface-soft)] sm:col-span-2"
-            />
-            <input
-              value={profile.phone ?? ""}
-              onChange={(e) => setField("phone", e.target.value)}
-              placeholder="Phone"
-              className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
-            />
-            <select
-              value={profile.gender ?? ""}
-              onChange={(e) => setField("gender", e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
-            >
-              <option value="">Gender</option>
-              <option value="M">Male</option>
-              <option value="F">Female</option>
-              <option value="Other">Other</option>
-            </select>
-            <input
-              value={profile.dateOfBirth ?? ""}
-              onChange={(e) => setField("dateOfBirth", e.target.value)}
-              placeholder="Date of birth"
-              className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
-            />
-          </div>
-        </Card>
-
-        <Card className="xl:col-span-2">
-          <CardHeader title="Address & Contact" subtitle="Location and reachability details" />
-          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input
-              value={profile.address ?? ""}
-              onChange={(e) => setField("address", e.target.value)}
-              placeholder="Address"
-              className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] sm:col-span-2 focus:outline-none focus:border-[var(--color-primary)]"
-            />
-            <input
-              value={profile.street ?? ""}
-              onChange={(e) => setField("street", e.target.value)}
-              placeholder="Street"
-              className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
-            />
-            <select
-              value={countryCode}
-              onChange={(e) => {
-                const code = e.target.value;
-                setCountryCode(code);
-                setStateCode("");
-                setCityId("");
-                const country = countries.find((c) => c.iso2 === code)?.name ?? "";
-                setField("country", country);
-                setField("state", "");
-                setField("city", "");
-              }}
-              className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
-            >
-              <option value="">{countriesLoading ? "Loading countries..." : "Select country"}</option>
-              {countries.map((country) => (
-                <option key={country.iso2} value={country.iso2}>
-                  {country.emoji} {country.name}
-                </option>
-              ))}
-            </select>
-            <select
-              value={stateCode}
-              onChange={(e) => {
-                const code = e.target.value;
-                setStateCode(code);
-                setCityId("");
-                const stateName = states.find((s) => s.state_code === code)?.name ?? "";
-                setField("state", stateName);
-                setField("city", "");
-              }}
-              disabled={!countryCode || statesLoading}
-              className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
-            >
-              <option value="">
-                {!countryCode ? "Select country first" : statesLoading ? "Loading states..." : "Select state"}
-              </option>
-              {states.map((state) => (
-                <option key={state.state_code} value={state.state_code}>
-                  {state.name}
-                </option>
-              ))}
-            </select>
-            <select
-              value={cityId}
-              onChange={(e) => {
-                const id = e.target.value;
-                setCityId(id);
-                const cityName = cities.find((c) => String(c.id) === id)?.name ?? "";
-                setField("city", cityName);
-              }}
-              disabled={!stateCode || citiesLoading}
-              className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
-            >
-              <option value="">
-                {!stateCode ? "Select state first" : citiesLoading ? "Loading cities..." : "Select city"}
-              </option>
-              {cities.map((city) => (
-                <option key={city.id} value={city.id}>
-                  {city.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </Card>
-      </div>
+          <Card>
+            <CardHeader title="Reset Password" subtitle="Switch your sign-in password without leaving profile settings" />
+            <div className="px-5 pb-5 space-y-4">
+              <input
+                type="password"
+                value={passwordForm.currentPassword}
+                onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+                placeholder="Current password"
+                className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
+              />
+              <input
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+                placeholder="New password"
+                className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
+              />
+              <input
+                type="password"
+                value={passwordForm.confirmPassword}
+                onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                placeholder="Confirm new password"
+                className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
+              />
+              <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3 text-xs text-[var(--color-text-muted)]">
+                Use at least 8 characters and avoid reusing your current password.
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  onClick={handleChangePassword}
+                  disabled={changingPassword}
+                  className="w-full sm:w-auto bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:bg-[var(--color-primary-hover)]"
+                >
+                  {changingPassword ? "Updating..." : "Update Password"}
+                </Button>
+                <Button className="w-full sm:w-auto" variant="outline" onClick={() => setActiveView("profile")}>
+                  Back to Profile
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

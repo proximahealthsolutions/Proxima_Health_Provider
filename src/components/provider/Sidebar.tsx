@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import Avatar from "@/components/shared/Avatar";
 import Icon, { IconName } from "@/components/shared/Icon";
 import { cn } from "@/lib/utils";
 import { ProviderSidebarProps, ProviderNavSection } from "@/types";
 import { fetchApi } from "@/lib/api";
+import { logoutProviderSession } from "@/lib/session";
 
 const navSections: ProviderNavSection[] = [
   {
@@ -43,7 +43,6 @@ export default function ProviderSidebar({
   onClose,
   profile,
 }: ProviderSidebarProps) {
-  const router = useRouter();
   const [patientCount, setPatientCount] = useState<number | null>(null);
   const [bookingCount, setBookingCount] = useState<number | null>(null);
   const [notificationCount, setNotificationCount] = useState<number | null>(null);
@@ -130,12 +129,7 @@ export default function ProviderSidebar({
   );
 
   function handleLogout() {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("token");
-      localStorage.removeItem("verificationToken");
-      document.cookie = "token=; Max-Age=0; Path=/";
-    }
-    router.push("/");
+    void logoutProviderSession();
   }
 
   return (

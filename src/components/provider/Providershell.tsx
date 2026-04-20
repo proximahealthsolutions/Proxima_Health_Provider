@@ -5,6 +5,8 @@ import ProviderSidebar  from "@/components/provider/Sidebar";
 import ProviderTopbar   from "@/components/provider/Topbar";
 import ProviderPageContent from "@/components/provider/Pagecontent";
 import { fetchApi } from "@/lib/api";
+import { useInactivityLogout } from "@/hooks/useInactivityLogout";
+import { logoutProviderSession } from "@/lib/session";
 import { ProviderPage, ProviderProfileSummary } from "@/types";
 import {
   ProviderChatIntent,
@@ -51,6 +53,8 @@ export default function ProviderShell() {
     }),
     [chatIntent]
   );
+
+  useInactivityLogout(() => logoutProviderSession());
 
   return (
     <ProviderUiProvider value={actions}>
