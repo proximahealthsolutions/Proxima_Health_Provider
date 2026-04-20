@@ -10,10 +10,10 @@ const config: AuthPageConfig = {
   role: "provider",
   dashboardRoute: "/provider",
   icon: "🩺",
-  tagline: "Provider Portal",
+  tagline: "Physician Portal",
   features: [
     "Verify your email to start onboarding",
-    "Complete your provider profile",
+    "Complete your physician profile",
     "Access your dashboard right after verification",
     "Manage patient bookings immediately",
   ],
@@ -79,7 +79,7 @@ export default function ProviderSignupPage() {
       });
       router.push(`/verify?email=${encodeURIComponent(form.email.trim())}`);
     } catch (err: any) {
-      setError(err?.message || "Unable to create provider account.");
+      setError(err?.message || "Unable to create physician account.");
     } finally {
       setLoading(false);
       setSubmitting(false);
@@ -93,14 +93,14 @@ export default function ProviderSignupPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--color-primary-soft)] border border-[var(--color-primary-soft-border)] mb-5">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-pulse" />
             <span className="text-[11px] font-bold tracking-widest uppercase text-[var(--color-primary)]">
-              Create Provider Account
+              Create Physician Account
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--color-text)] tracking-tight mb-1.5">
             Join the Proxima network
           </h1>
           <p className="text-[var(--color-text-muted)] text-sm">
-            Create your account to verify your email and start using the provider portal.
+            Create your account to verify your email and start using the physician portal.
           </p>
         </div>
 

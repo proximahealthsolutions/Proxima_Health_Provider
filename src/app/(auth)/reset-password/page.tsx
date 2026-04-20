@@ -10,7 +10,7 @@ const config: AuthPageConfig = {
   role: "provider",
   dashboardRoute: "/provider",
   icon: "🩺",
-  tagline: "Provider Portal",
+  tagline: "Physician Portal",
   features: [
     "Create a fresh password",
     "Keep your portal secure",
@@ -82,7 +82,7 @@ function ProviderResetPasswordPageContent() {
             Create a new password
           </h1>
           <p className="text-[var(--color-text-muted)] text-sm">
-            Enter a new password for your provider account.
+            Enter a new password for your physician account.
           </p>
         </div>
         <input

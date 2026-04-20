@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Provider Portal | Proxima Health",
+  title: "Physician Portal | Proxima Health",
   description: "Manage your patients, schedule, lab orders, and clinical notes.",
 };
 

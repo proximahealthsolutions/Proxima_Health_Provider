@@ -8,7 +8,7 @@ const config: AuthPageConfig = {
   role: "provider",
   dashboardRoute: "/provider",
   icon: "🩺",
-  tagline: "Provider Portal",
+  tagline: "Physician Portal",
   features: [
     "Your account is under review",
     "Admins will verify your credentials",
@@ -45,7 +45,7 @@ export default function ProviderUnderReviewPage() {
           <div className="text-3xl mb-3">🕒</div>
           <h1 className="text-2xl font-extrabold text-[var(--color-text)]">Account Under Review</h1>
           <p className="text-[var(--color-text-muted)] text-sm mt-2">
-            Your provider profile is awaiting admin approval. You will be able to access the dashboard once approved.
+            Your physician profile is awaiting admin approval. You will be able to access the dashboard once approved.
           </p>
         </div>
         <div className="flex flex-col gap-3">

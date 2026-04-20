@@ -12,9 +12,9 @@ const config: AuthPageConfig = {
   role: "provider",
   dashboardRoute: "/provider",
   icon: "🩺",
-  tagline: "Provider Portal",
+  tagline: "Physician Portal",
   features: [
-    "Complete your provider profile",
+    "Complete your physician profile",
     "Confirm contact details",
     "Start seeing patients right away",
   ],
@@ -222,7 +222,7 @@ export default function ProviderCompleteProfilePage() {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--color-text)] tracking-tight mb-1.5">
-            Finish your provider profile
+            Finish your physician profile
           </h1>
           <p className="text-[var(--color-text-muted)] text-sm">
             Fill in your details so patients can see accurate information.
@@ -394,7 +394,7 @@ export default function ProviderCompleteProfilePage() {
         <input
           value={form.providerRecordNumber}
           onChange={update("providerRecordNumber")}
-          placeholder="Provider record number"
+          placeholder="Physician record number"
           required
           className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm"
         />

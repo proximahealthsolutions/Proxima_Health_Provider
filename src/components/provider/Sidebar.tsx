@@ -57,8 +57,8 @@ export default function ProviderSidebar({
   const displayName =
     profile?.firstName || profile?.lastName
       ? `${profile?.firstName ?? ""} ${profile?.lastName ?? ""}`.trim()
-      : "Provider";
-  const subtitle = profile?.email ?? "Provider account";
+      : "Physician";
+  const subtitle = profile?.email ?? "Physician account";
 
   useEffect(() => {
     let mounted = true;
@@ -179,7 +179,7 @@ export default function ProviderSidebar({
           </div>
           <div className="min-w-0">
             <div className="text-[var(--color-primary)] font-bold text-sm leading-tight tracking-tight">Proxima Health</div>
-            <div className="text-[var(--color-primary-faint)] text-[10px] uppercase tracking-[0.18em] mt-0.5">Provider Portal</div>
+            <div className="text-[var(--color-primary-faint)] text-[10px] uppercase tracking-[0.18em] mt-0.5">Physician Portal</div>
           </div>
         </div>
 
@@ -187,7 +187,7 @@ export default function ProviderSidebar({
         <div className="relative mx-4 mt-4 px-3 py-1.5 rounded-lg bg-[var(--color-primary-soft)] text-[var(--color-accent)] text-xs font-semibold">
           <span className="inline-flex items-center gap-2">
             <Icon name="medical" className="w-3.5 h-3.5" />
-            Provider Portal
+            Physician Portal
           </span>
         </div>
 

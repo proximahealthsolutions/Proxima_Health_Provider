@@ -32,14 +32,14 @@ export default function LoginForm({ onSubmit, loading, error }: LoginFormProps) 
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--color-primary-soft)] border border-[color:var(--color-primary-soft-border)] mb-5">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-pulse" />
           <span className="text-[11px] font-bold tracking-widest uppercase text-[var(--color-primary)]">
-            Provider Access
+            Physician Access
           </span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--color-text)] tracking-tight mb-1.5">
           Welcome back
         </h1>
         <p className="text-[var(--color-text-muted)] text-sm">
-          Sign in to your provider account.
+          Sign in to your physician account.
         </p>
       </div>
 

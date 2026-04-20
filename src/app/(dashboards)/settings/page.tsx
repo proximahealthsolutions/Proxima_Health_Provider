@@ -87,9 +87,9 @@ export default function SettingsPage() {
   }, [cities, cityId, profile, stateCode]);
 
   const displayName = useMemo(() => {
-    if (!profile) return "Provider Profile";
+    if (!profile) return "Physician Profile";
     const name = `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim();
-    return name || "Provider Profile";
+    return name || "Physician Profile";
   }, [profile]);
 
   function setField<K extends keyof ProviderProfile>(key: K, value: ProviderProfile[K]) {

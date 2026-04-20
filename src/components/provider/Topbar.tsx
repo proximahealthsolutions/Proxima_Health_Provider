@@ -38,7 +38,7 @@ export default function ProviderTopbar({
   const displayName =
     profile?.firstName || profile?.lastName
       ? `${profile?.firstName ?? ""} ${profile?.lastName ?? ""}`.trim()
-      : "Provider";
+      : "Physician";
 
   return (
     <header className="sticky top-0 z-20 flex items-center gap-2 sm:gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]/92 px-3 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface)]/82 sm:px-4 [padding-top:calc(env(safe-area-inset-top)+0.75rem)]">
@@ -54,7 +54,7 @@ export default function ProviderTopbar({
         <span className="font-bold text-[var(--color-text)] text-sm sm:text-base truncate">
           {pageTitles[activePage] ?? "Dashboard"}
         </span>
-        <span className="text-[var(--color-text-muted)] text-sm hidden sm:inline">— Provider Portal</span>
+        <span className="text-[var(--color-text-muted)] text-sm hidden sm:inline">— Physician Portal</span>
       </div>
       <button
         type="button"

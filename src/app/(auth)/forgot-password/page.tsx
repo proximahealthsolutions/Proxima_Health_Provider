@@ -9,7 +9,7 @@ const config: AuthPageConfig = {
   role: "provider",
   dashboardRoute: "/provider",
   icon: "🩺",
-  tagline: "Provider Portal",
+  tagline: "Physician Portal",
   features: [
     "Request a reset from your email",
     "Update your password securely",

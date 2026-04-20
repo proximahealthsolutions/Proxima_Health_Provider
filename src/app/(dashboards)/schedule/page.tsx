@@ -196,7 +196,7 @@ export default function SchedulePage() {
       <div className="rounded-2xl bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="text-xl font-bold text-[var(--color-on-primary)]">Provider Schedule</h2>
+            <h2 className="text-xl font-bold text-[var(--color-on-primary)]">Physician Schedule</h2>
             <p className="mt-1 text-sm text-[var(--color-primary-contrast-soft)]">
               Keep your weekly availability clean and see the days that already have bookings.
             </p>

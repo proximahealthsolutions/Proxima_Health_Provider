@@ -743,7 +743,7 @@ export default function MessagesPage() {
       <div className="hidden lg:block rounded-[28px] p-6 sm:p-7 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.2),_transparent_58%),linear-gradient(120deg,var(--color-primary),var(--color-primary-hover))] text-[var(--color-on-primary)] shadow-[0_24px_60px_rgba(15,23,42,0.25)]">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.35em] text-[var(--color-primary-contrast-soft)]">Provider Messages</p>
+            <p className="text-[11px] uppercase tracking-[0.35em] text-[var(--color-primary-contrast-soft)]">Physician Messages</p>
             <h2 className="text-2xl sm:text-3xl font-semibold mt-2">Clinical chat</h2>
             <p className="text-sm text-[var(--color-primary-contrast-soft)] mt-2 max-w-xl">
               Stay synced with patients in real time, securely and efficiently.

@@ -11,7 +11,7 @@ const config: AuthPageConfig = {
   role: "provider",
   dashboardRoute: "/provider",
   icon: "🩺",
-  tagline: "Provider Portal",
+  tagline: "Physician Portal",
   features: [
     "Manage your patient queue",
     "Write & store clinical notes",
@@ -81,7 +81,7 @@ export default function ProviderAuthPage() {
             onClick={() => router.push("/signup")}
             className="text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-semibold"
           >
-            Create a provider account
+            Create a physician account
           </button>
         </div>
       </div>

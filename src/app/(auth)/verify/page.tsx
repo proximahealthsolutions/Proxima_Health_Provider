@@ -10,10 +10,10 @@ const config: AuthPageConfig = {
   role: "provider",
   dashboardRoute: "/provider",
   icon: "🩺",
-  tagline: "Provider Portal",
+  tagline: "Physician Portal",
   features: [
     "Verify your email from your inbox",
-    "Complete your provider profile",
+    "Complete your physician profile",
     "Access your dashboard right away",
   ],
   accentColor: {
@@ -91,7 +91,7 @@ function ProviderVerifyPageContent() {
           </h1>
           <p className="text-[var(--color-text-muted)] text-sm">
             {token
-              ? "We are confirming your provider account now."
+              ? "We are confirming your physician account now."
               : `We sent a verification email${email ? ` to ${email}` : ""}. Open it and click the link to continue.`}
           </p>
         </div>
