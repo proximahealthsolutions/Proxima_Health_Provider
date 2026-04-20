@@ -288,6 +288,20 @@ export default function SettingsPage() {
                 <span>Gender</span>
                 <span className="text-[var(--color-text)]">{profile.gender ?? "—"}</span>
               </div>
+              <div className="flex justify-between gap-3">
+                <span>Address</span>
+                <span className="text-right text-[var(--color-text)]">{profile.address ?? "—"}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span>Street</span>
+                <span className="text-right text-[var(--color-text)]">{profile.street ?? "—"}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span>Location</span>
+                <span className="text-right text-[var(--color-text)]">
+                  {[profile.city, profile.state, profile.country].filter(Boolean).join(", ") || "—"}
+                </span>
+              </div>
             </div>
           </div>
         </Card>
