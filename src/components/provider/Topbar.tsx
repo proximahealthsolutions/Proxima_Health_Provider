@@ -81,10 +81,22 @@ export default function ProviderTopbar({
             {profile?.email ?? "Signed in"}
           </div>
         </div>
-        <Avatar initials={initials} color="purple" size="md" rounded />
+        <Avatar
+          initials={initials}
+          imageUrl={profile?.profileImageUrl ?? undefined}
+          color="purple"
+          size="md"
+          rounded
+        />
       </div>
       <div className="sm:hidden">
-        <Avatar initials={initials} color="purple" size="md" rounded />
+        <Avatar
+          initials={initials}
+          imageUrl={profile?.profileImageUrl ?? undefined}
+          color="purple"
+          size="md"
+          rounded
+        />
       </div>
     </header>
   );

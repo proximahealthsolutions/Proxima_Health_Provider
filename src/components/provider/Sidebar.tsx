@@ -254,7 +254,13 @@ export default function ProviderSidebar({
         {/* Footer */}
         <div className="relative p-3 border-t border-[var(--color-border)]">
           <div className="flex items-center gap-3 rounded-xl border border-[color:var(--color-primary-soft-border)] bg-[var(--color-primary-soft)] px-3 py-2.5">
-            <Avatar initials={initials} color="purple" size="sm" rounded />
+            <Avatar
+              initials={initials}
+              imageUrl={profile?.profileImageUrl ?? undefined}
+              color="purple"
+              size="sm"
+              rounded
+            />
             <div className="min-w-0">
               <div className="text-sm font-semibold text-[var(--color-primary)] truncate">{displayName}</div>
               <div className="text-[11px] text-[var(--color-primary-faint)] truncate">{subtitle}</div>
