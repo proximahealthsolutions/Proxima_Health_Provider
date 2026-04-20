@@ -65,6 +65,8 @@ function getTodayDateInputValue() {
 
 export default function ProviderCompleteProfilePage() {
   const maxProfileImageSizeBytes = 10 * 1024 * 1024;
+  const profileImageUploadErrorMessage =
+    "Profile image upload failed. Please use JPG, PNG, or WEBP and keep the file at 10MB or smaller.";
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -171,7 +173,11 @@ export default function ProviderCompleteProfilePage() {
       });
       setForm((prev) => ({ ...prev, profileImageUrl: updated?.profileImageUrl ?? "" }));
     } catch (err: any) {
-      setError(err?.message || "Unable to upload profile photo.");
+      setError(
+        err?.message && err.message !== "Something went wrong"
+          ? err.message
+          : profileImageUploadErrorMessage
+      );
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

@@ -28,6 +28,8 @@ type ProviderProfile = {
 
 export default function SettingsPage() {
   const maxProfileImageSizeBytes = 10 * 1024 * 1024;
+  const profileImageUploadErrorMessage =
+    "Profile image upload failed. Please use JPG, PNG, or WEBP and keep the file at 10MB or smaller.";
   const [profile, setProfile] = useState<ProviderProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -144,8 +146,12 @@ export default function SettingsPage() {
       });
       setProfile(updated);
       setMessage("Profile image updated.");
-    } catch {
-      setMessage("Unable to upload profile image.");
+    } catch (err: any) {
+      setMessage(
+        err?.message && err.message !== "Something went wrong"
+          ? err.message
+          : profileImageUploadErrorMessage
+      );
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -416,4 +422,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
