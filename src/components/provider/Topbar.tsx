@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Avatar from "@/components/shared/Avatar";
 import Icon from "@/components/shared/Icon";
 import ThemeToggle from "@/components/shared/ThemeToggle";
@@ -9,6 +8,7 @@ import { ProviderTopbarProps, ProviderPage } from "@/types";
 const pageTitles: Record<ProviderPage, string> = {
   overview:      "Dashboard",
   patients:      "My Patients",
+  notifications: "Notifications",
   schedule:      "Schedule",
   notes:         "Patient Notes",
   prescriptions: "Prescriptions",
@@ -27,8 +27,12 @@ function initialsFromProfile(firstName?: string | null, lastName?: string | null
   return initials || "PR";
 }
 
-export default function ProviderTopbar({ activePage, onMenuToggle, profile }: ProviderTopbarProps) {
-  const [search, setSearch] = useState("");
+export default function ProviderTopbar({
+  activePage,
+  onMenuToggle,
+  onOpenNotifications,
+  profile,
+}: ProviderTopbarProps) {
   const initials = initialsFromProfile(profile?.firstName, profile?.lastName);
   const displayName =
     profile?.firstName || profile?.lastName
@@ -51,20 +55,12 @@ export default function ProviderTopbar({ activePage, onMenuToggle, profile }: Pr
         </span>
         <span className="text-[var(--color-text-muted)] text-sm hidden sm:inline">— Provider Portal</span>
       </div>
-
-      <div className="hidden md:flex items-center gap-2 bg-[var(--color-surface-soft)] rounded-xl px-3 py-2 w-56">
-        <span className="text-[var(--color-text-muted)]">
-          <Icon name="search" className="w-4 h-4" />
-        </span>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search patients, records..."
-          className="bg-transparent text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] outline-none w-full"
-        />
-      </div>
-
-      <button className="relative hidden sm:flex items-center justify-center w-10 h-10 rounded-xl hover:bg-[var(--color-surface-soft)] transition-colors text-[var(--color-text)]">
+      <button
+        type="button"
+        onClick={onOpenNotifications}
+        className="relative flex items-center justify-center w-10 h-10 rounded-xl hover:bg-[var(--color-surface-soft)] transition-colors text-[var(--color-text)]"
+        aria-label="Open notifications"
+      >
         <Icon name="bell" className="w-5 h-5" />
         <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[var(--color-primary)] rounded-full" />
       </button>
@@ -92,4 +88,3 @@ export default function ProviderTopbar({ activePage, onMenuToggle, profile }: Pr
     </header>
   );
 }
-

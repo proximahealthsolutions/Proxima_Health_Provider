@@ -18,6 +18,8 @@ export interface ProviderBooking {
   id: string;
   rawStatus?: string;
   patientId: string;
+  startAt?: string;
+  endAtIso?: string;
   patientName?: string;
   patientEmail?: string;
   patientPhone?: string;

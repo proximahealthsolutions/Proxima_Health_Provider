@@ -70,6 +70,7 @@ export default function ProviderShell() {
         <ProviderTopbar
           activePage={activePage}
           onMenuToggle={() => setSidebarOpen((v) => !v)}
+          onOpenNotifications={() => setActivePage("notifications")}
           profile={profile}
         />
         <main

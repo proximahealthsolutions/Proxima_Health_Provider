@@ -3,6 +3,7 @@
 export type ProviderPage =
   | "overview"
   | "patients"
+  | "notifications"
   | "schedule"
   | "notes"
   | "prescriptions"
@@ -20,5 +21,6 @@ export interface ProviderProfileSummary {
 export interface ProviderTopbarProps {
   activePage:   ProviderPage;
   onMenuToggle: () => void;
+  onOpenNotifications: () => void;
   profile?: ProviderProfileSummary | null;
 }

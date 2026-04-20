@@ -19,7 +19,6 @@ export default function PatientsPage() {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<PatientFilter>("All");
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const [search, setSearch] = useState("");
   const [acceptedCount, setAcceptedCount] = useState(0);
   const [patients, setPatients] = useState<PatientRow[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -101,15 +100,13 @@ export default function PatientsPage() {
   }
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
     return patients.filter((p) => {
-      if (!p.name.toLowerCase().includes(q)) return false;
       if (activeFilter === "Active") return p.status === "Active";
       if (activeFilter === "High Risk") return p.risk === "High";
       if (activeFilter === "Recent") return p.lastVisit !== "—";
       return true;
     });
-  }, [search, activeFilter, patients]);
+  }, [activeFilter, patients]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -137,18 +134,6 @@ export default function PatientsPage() {
           subtitle={`${filtered.length} patients`}
           actions={
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Search */}
-              <div className="flex items-center gap-2 bg-[var(--color-surface-soft)] rounded-xl px-3 py-2 border border-[var(--color-border)]">
-                <span className="text-[var(--color-text-muted)] text-sm">
-                  <Icon name="search" className="w-4 h-4" />
-                </span>
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search patients..."
-                  className="bg-transparent text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] outline-none w-36"
-                />
-              </div>
               <div className="relative sm:hidden">
                 <button
                   type="button"
@@ -408,4 +393,3 @@ export default function PatientsPage() {
     </div>
   );
 }
-

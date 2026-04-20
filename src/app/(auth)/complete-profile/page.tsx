@@ -39,6 +39,30 @@ const config: AuthPageConfig = {
   },
 };
 
+function calculateAge(dateOfBirth: string) {
+  if (!dateOfBirth) return "";
+
+  const birthDate = new Date(dateOfBirth);
+  if (Number.isNaN(birthDate.getTime())) return "";
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const hasHadBirthday =
+    today.getMonth() > birthDate.getMonth() ||
+    (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+
+  if (!hasHadBirthday) age -= 1;
+  return age >= 0 ? String(age) : "";
+}
+
+function getTodayDateInputValue() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export default function ProviderCompleteProfilePage() {
   const maxProfileImageSizeBytes = 10 * 1024 * 1024;
   const router = useRouter();
@@ -66,6 +90,7 @@ export default function ProviderCompleteProfilePage() {
   const { countries, loading: countriesLoading } = useCountries();
   const { states, loading: statesLoading } = useStates(countryCode);
   const { cities, loading: citiesLoading } = useCities(countryCode, stateCode);
+  const maxDateOfBirth = getTodayDateInputValue();
 
   useEffect(() => {
     async function load() {
@@ -74,7 +99,7 @@ export default function ProviderCompleteProfilePage() {
         setForm({
           firstName: resp.firstName ?? "",
           lastName: resp.lastName ?? "",
-          age: resp.age?.toString() ?? "",
+          age: resp.dateOfBirth ? calculateAge(resp.dateOfBirth) : resp.age?.toString() ?? "",
           address: resp.address ?? "",
           street: resp.street ?? "",
           country: resp.country ?? "",
@@ -116,7 +141,16 @@ export default function ProviderCompleteProfilePage() {
 
   function update(key: keyof typeof form) {
     return (event: React.ChangeEvent<HTMLInputElement>) =>
-      setForm((prev) => ({ ...prev, [key]: event.target.value }));
+      setForm((prev) => {
+        if (key === "dateOfBirth") {
+          return {
+            ...prev,
+            dateOfBirth: event.target.value,
+            age: calculateAge(event.target.value),
+          };
+        }
+        return { ...prev, [key]: event.target.value };
+      });
   }
 
   async function handleProfileImageChange(file?: File | null) {
@@ -150,6 +184,11 @@ export default function ProviderCompleteProfilePage() {
     event.preventDefault();
     setLoading(true);
     setError("");
+    if (!form.dateOfBirth || !form.age) {
+      setError("Please select date of birth so age can be calculated.");
+      setLoading(false);
+      return;
+    }
     try {
       await fetchApi("/providers/complete-profile", {
         method: "POST",
@@ -241,14 +280,24 @@ export default function ProviderCompleteProfilePage() {
             className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm"
           />
         </div>
-        <input
-          value={form.age}
-          onChange={update("age")}
-          type="number"
-          placeholder="Age"
-          required
-          className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm"
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input
+            value={form.dateOfBirth}
+            onChange={update("dateOfBirth")}
+            type="date"
+            required
+            max={maxDateOfBirth}
+            className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm"
+          />
+          <div className="flex items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text)]">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Age</div>
+              <div className="mt-1 font-medium">
+                {form.age || "Will be calculated from date of birth"}
+              </div>
+            </div>
+          </div>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <select
             value={countryCode}
@@ -334,12 +383,6 @@ export default function ProviderCompleteProfilePage() {
           value={form.phone}
           onChange={update("phone")}
           placeholder="Phone (optional)"
-          className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm"
-        />
-        <input
-          value={form.dateOfBirth}
-          onChange={update("dateOfBirth")}
-          placeholder="Date of birth (optional)"
           className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm"
         />
         <input

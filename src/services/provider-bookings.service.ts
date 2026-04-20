@@ -60,6 +60,8 @@ function mapAppointment(appointment: AppointmentRecord): ProviderBooking {
     id: appointment.id,
     rawStatus: appointment.status,
     patientId: appointment.patientId,
+    startAt: appointment.startAt,
+    endAtIso: appointment.endAt,
     patientName,
     patientEmail: patient?.email ?? "",
     patientPhone: patient?.phone ?? "",
