@@ -100,6 +100,13 @@ export default function LabOrdersPage() {
 
   const urgentCount = rows.filter((r) => r.priority === "Urgent").length;
 
+  function downloadFile(row: ProviderLabOrder) {
+    if (!row.fileUrl) return;
+    if (typeof window !== "undefined") {
+      window.open(row.fileUrl, "_blank", "noopener,noreferrer");
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="rounded-2xl p-6 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -143,12 +150,26 @@ export default function LabOrdersPage() {
                     <Badge variant={labStatusVariant[o.status]}>{o.status}</Badge>
                   </td>
                   <td className="px-5 py-3 text-xs text-[var(--color-text-muted)] max-w-[220px]">
-                    {o.resultNote || "—"}
+                    <div className="space-y-1">
+                      <div>{o.resultNote || "—"}</div>
+                      {o.fileName && (
+                        <div className="text-[11px] font-medium text-[var(--color-primary)]">
+                          PDF: {o.fileName}
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-5 py-3">
-                    <Button size="sm" variant="ghost" onClick={() => openEditDrawer(o)}>
-                      Edit
-                    </Button>
+                    <div className="flex flex-wrap gap-1.5">
+                      <Button size="sm" variant="ghost" onClick={() => openEditDrawer(o)}>
+                        Edit
+                      </Button>
+                      {o.fileUrl && (
+                        <Button size="sm" variant="outline" onClick={() => downloadFile(o)}>
+                          Download PDF
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -247,4 +268,3 @@ export default function LabOrdersPage() {
     </div>
   );
 }
-

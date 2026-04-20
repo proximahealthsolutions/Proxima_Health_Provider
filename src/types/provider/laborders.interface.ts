@@ -11,6 +11,11 @@ export interface ProviderLabOrder {
   priority: LabPriority;
   status: LabStatus;
   resultNote?: string;
+  fileUrl?: string | null;
+  fileName?: string | null;
+  fileMimeType?: string | null;
+  fileSize?: number | null;
+  uploadedBy?: "patient" | "provider" | null;
 }
 
 export const labPriorityVariant: Record<LabPriority, BadgeVariant> = {

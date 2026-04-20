@@ -9,6 +9,7 @@ const pageTitles: Record<ProviderPage, string> = {
   overview:      "Dashboard",
   patients:      "My Patients",
   notifications: "Notifications",
+  bookings:      "Bookings",
   schedule:      "Schedule",
   notes:         "Patient Notes",
   prescriptions: "Prescriptions",

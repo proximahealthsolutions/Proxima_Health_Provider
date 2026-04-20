@@ -6,6 +6,7 @@ import { ProviderPage, ProviderPageContentProps } from "@/types";
 const Overview  = lazy(() => import("@/app/(dashboards)/overview/page"));
 const Patients  = lazy(() => import("@/app/(dashboards)/patients/page"));
 const Notifications = lazy(() => import("@/app/(dashboards)/notifications/page"));
+const Bookings = lazy(() => import("@/app/(dashboards)/bookings/page"));
 const Schedule = lazy(() => import("@/app/(dashboards)/schedule/page"));
 const Notes = lazy(() => import("@/app/(dashboards)/notes/page"));
 const Prescriptions = lazy(() => import("@/app/(dashboards)/prescriptions/page"));
@@ -27,6 +28,7 @@ export default function ProviderPageContent({ activePage }: ProviderPageContentP
       case "overview":  return <Overview />;
       case "patients":  return <Patients />;
       case "notifications": return <Notifications />;
+      case "bookings": return <Bookings />;
       case "schedule": return <Schedule />;
       case "notes": return <Notes />;
       case "prescriptions": return <Prescriptions />;

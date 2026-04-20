@@ -4,6 +4,7 @@ export type ProviderPage =
   | "overview"
   | "patients"
   | "notifications"
+  | "bookings"
   | "schedule"
   | "notes"
   | "prescriptions"

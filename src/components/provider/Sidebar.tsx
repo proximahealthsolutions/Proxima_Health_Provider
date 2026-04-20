@@ -14,8 +14,10 @@ const navSections: ProviderNavSection[] = [
     items: [
       { icon: "home", label: "Dashboard",    page: "overview" },
       { icon: "users", label: "My Patients",  page: "patients" },
+      { icon: "bell", label: "Notifications", page: "notifications" },
+      { icon: "calendar", label: "Bookings", page: "bookings" },
       { icon: "message", label: "Messages",     page: "messages" },
-      { icon: "calendar", label: "Schedule",     page: "schedule" },
+      { icon: "clipboard", label: "Schedule", page: "schedule" },
     ],
   },
   {
@@ -43,7 +45,8 @@ export default function ProviderSidebar({
 }: ProviderSidebarProps) {
   const router = useRouter();
   const [patientCount, setPatientCount] = useState<number | null>(null);
-  const [scheduleCount, setScheduleCount] = useState<number | null>(null);
+  const [bookingCount, setBookingCount] = useState<number | null>(null);
+  const [notificationCount, setNotificationCount] = useState<number | null>(null);
   const initials =
     [profile?.firstName, profile?.lastName]
       .filter(Boolean)
@@ -61,22 +64,33 @@ export default function ProviderSidebar({
     let mounted = true;
     (async () => {
       try {
-        const [patients, appointments] = await Promise.all([
+        const [patients, appointments, labOrders, threads] = await Promise.all([
           fetchApi("/providers/patients"),
           fetchApi("/providers/appointments"),
+          fetchApi("/providers/clinical/lab-orders"),
+          fetchApi("/providers/messages/threads"),
         ]);
         if (!mounted) return;
         setPatientCount(Array.isArray(patients) ? patients.length : 0);
         if (Array.isArray(appointments)) {
           const pending = appointments.filter((row) => row?.status === "REQUESTED").length;
-          setScheduleCount(pending);
+          setBookingCount(pending);
+          const patientLabUploads = Array.isArray(labOrders)
+            ? labOrders.filter((row) => row?.uploadedBy === "patient").length
+            : 0;
+          const messageUpdates = Array.isArray(threads)
+            ? threads.filter((row) => Boolean(row?.lastMessage)).length
+            : 0;
+          setNotificationCount(pending + patientLabUploads + messageUpdates);
         } else {
-          setScheduleCount(0);
+          setBookingCount(0);
+          setNotificationCount(0);
         }
       } catch {
         if (!mounted) return;
         setPatientCount(null);
-        setScheduleCount(null);
+        setBookingCount(null);
+        setNotificationCount(null);
       }
     })();
     return () => {
@@ -92,17 +106,27 @@ export default function ProviderSidebar({
           if (item.page === "patients") {
             return { ...item, badge: patientCount !== null ? `${patientCount}` : undefined };
           }
-          if (item.page === "schedule") {
+          if (item.page === "bookings") {
             return {
               ...item,
-              badge: scheduleCount !== null && scheduleCount > 0 ? `${scheduleCount}` : undefined,
-              urgent: scheduleCount !== null && scheduleCount > 0,
+              badge: bookingCount !== null && bookingCount > 0 ? `${bookingCount}` : undefined,
+              urgent: bookingCount !== null && bookingCount > 0,
+            };
+          }
+          if (item.page === "notifications") {
+            return {
+              ...item,
+              badge:
+                notificationCount !== null && notificationCount > 0
+                  ? `${notificationCount}`
+                  : undefined,
+              urgent: notificationCount !== null && notificationCount > 0,
             };
           }
           return item;
         }),
       })),
-    [patientCount, scheduleCount]
+    [bookingCount, notificationCount, patientCount]
   );
 
   function handleLogout() {
@@ -248,4 +272,3 @@ export default function ProviderSidebar({
     </>
   );
 }
-
