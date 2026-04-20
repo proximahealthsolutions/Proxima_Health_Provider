@@ -55,7 +55,7 @@ export default function ProviderShell() {
   return (
     <ProviderUiProvider value={actions}>
       <ProviderCallProvider>
-      <div className="flex min-h-dvh w-full overflow-hidden bg-[var(--color-bg)]">
+      <div className="flex h-dvh min-h-0 w-full overflow-hidden bg-[var(--color-bg)]">
       {/* ── Sidebar ─────────────────────────────────────────────────────── */}
       <ProviderSidebar
         activePage={activePage}
@@ -66,7 +66,7 @@ export default function ProviderShell() {
       />
 
       {/* ── Main column ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+      <div className="flex min-h-0 flex-1 min-w-0 flex-col overflow-hidden">
         <ProviderTopbar
           activePage={activePage}
           onMenuToggle={() => setSidebarOpen((v) => !v)}
@@ -75,7 +75,7 @@ export default function ProviderShell() {
         />
         <main
           data-mobile-scroll="true"
-          className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain"
+          className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain"
         >
           <div className="px-3 py-3 sm:px-5 sm:py-5 lg:p-6 [padding-bottom:calc(env(safe-area-inset-bottom)+1rem)]">
             <ProviderPageContent activePage={activePage} />
