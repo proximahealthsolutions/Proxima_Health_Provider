@@ -17,6 +17,8 @@ export type CareActionKey = "clinical_note" | "lab_order" | "prescription" | "fo
 export interface ProviderBooking {
   id: string;
   rawStatus?: string;
+  paymentStatus?: string;
+  paymentAmount?: number;
   patientId: string;
   startAt?: string;
   endAtIso?: string;

@@ -44,6 +44,10 @@ function patientName(booking: ProviderBooking) {
   return booking.patientName || "Patient";
 }
 
+function requiresCompletedPayment(booking: ProviderBooking) {
+  return (booking.paymentAmount ?? 0) > 0 && booking.paymentStatus !== "PAID";
+}
+
 export default function ProviderBookingsPage() {
   const [bookings, setBookings] = useState<ProviderBooking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -194,6 +198,13 @@ export default function ProviderBookingsPage() {
 
   function renderActions(booking: ProviderBooking) {
     if (booking.status === "requested") {
+      if (requiresCompletedPayment(booking)) {
+        return (
+          <span className="text-xs font-medium text-[var(--color-text-muted)]">
+            Awaiting payment
+          </span>
+        );
+      }
       return (
         <>
           <Button
@@ -217,6 +228,13 @@ export default function ProviderBookingsPage() {
     }
 
     if (booking.status === "accepted") {
+      if (requiresCompletedPayment(booking)) {
+        return (
+          <span className="text-xs font-medium text-[var(--color-text-muted)]">
+            Awaiting payment
+          </span>
+        );
+      }
       return (
         <>
           <Button
@@ -357,6 +375,7 @@ export default function ProviderBookingsPage() {
               </div>
               <div className="text-xs text-[var(--color-text-muted)]">
                 {formatSlot(booking)} · {booking.visitType || "VIDEO"}
+                {requiresCompletedPayment(booking) ? " · Awaiting payment" : ""}
               </div>
               <div className="flex flex-wrap gap-2">{renderActions(booking)}</div>
             </div>
@@ -401,7 +420,10 @@ export default function ProviderBookingsPage() {
                   <td className="px-5 py-3 whitespace-nowrap text-[var(--color-text-muted)]">
                     {formatSlot(booking)}
                   </td>
-                  <td className="px-5 py-3 text-[var(--color-text-muted)]">{booking.visitType || "VIDEO"}</td>
+                  <td className="px-5 py-3 text-[var(--color-text-muted)]">
+                    {booking.visitType || "VIDEO"}
+                    {requiresCompletedPayment(booking) ? " · Awaiting payment" : ""}
+                  </td>
                   <td className="px-5 py-3">
                     <Badge variant={bookingStatusVariant[booking.status]}>{booking.status}</Badge>
                   </td>

@@ -5,6 +5,8 @@ type AppointmentRecord = {
   id: string;
   startAt: string;
   endAt: string;
+  paymentAmount?: number | null;
+  paymentStatus?: string | null;
   status:
     | "REQUESTED"
     | "ACCEPTED"
@@ -59,6 +61,8 @@ function mapAppointment(appointment: AppointmentRecord): ProviderBooking {
   return {
     id: appointment.id,
     rawStatus: appointment.status,
+    paymentAmount: appointment.paymentAmount ?? 0,
+    paymentStatus: appointment.paymentStatus ?? "PENDING",
     patientId: appointment.patientId,
     startAt: appointment.startAt,
     endAtIso: appointment.endAt,
@@ -141,5 +145,9 @@ export async function toggleCareAction(params: {
 
 export async function getAcceptedProviderBookings(): Promise<ProviderBooking[]> {
   const all = await getProviderBookings();
-  return all.filter((booking) => booking.status === "accepted");
+  return all.filter(
+    (booking) =>
+      booking.status === "accepted" &&
+      ((booking.paymentAmount ?? 0) <= 0 || booking.paymentStatus === "PAID")
+  );
 }
