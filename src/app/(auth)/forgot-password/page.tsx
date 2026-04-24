@@ -8,7 +8,7 @@ import { fetchApi } from "@/lib/api";
 const config: AuthPageConfig = {
   role: "provider",
   dashboardRoute: "/provider",
-  icon: "🩺",
+  icon: "MD",
   tagline: "Physician Portal",
   features: [
     "Request a reset from your email",

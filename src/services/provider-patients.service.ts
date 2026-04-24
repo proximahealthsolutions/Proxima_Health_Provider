@@ -14,6 +14,7 @@ export async function getProviderPatients() {
   const rows = Array.isArray(resp) ? resp : [];
   return rows.map((row: any) => ({
     id: row.id,
+    patientRecordNumber: row.patientRecordNumber || "",
     firstName: row.firstName || "Patient",
     lastName: row.lastName || "",
     gender: row.gender || "—",

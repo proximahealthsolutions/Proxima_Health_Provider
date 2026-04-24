@@ -11,7 +11,7 @@ import Avatar from "@/components/shared/Avatar";
 const config: AuthPageConfig = {
   role: "provider",
   dashboardRoute: "/provider",
-  icon: "🩺",
+  icon: "MD",
   tagline: "Physician Portal",
   features: [
     "Complete your physician profile",

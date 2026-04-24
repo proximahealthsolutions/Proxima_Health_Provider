@@ -7,7 +7,7 @@ import type { AuthPageConfig } from "@/types";
 const config: AuthPageConfig = {
   role: "provider",
   dashboardRoute: "/provider",
-  icon: "🩺",
+  icon: "MD",
   tagline: "Physician Portal",
   features: [
     "Your account is under review",

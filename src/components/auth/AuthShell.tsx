@@ -40,7 +40,7 @@ export default function AuthShell({ config, children }: AuthShellProps) {
 
           {/* Icon + heading */}
           <div className="mt-12 mb-8 w-full">
-            <div className={`w-20 h-20 rounded-2xl ${a.iconBg} border ${a.border} flex items-center justify-center mx-auto mb-7 text-4xl`}>
+            <div className={`w-20 h-20 rounded-2xl ${a.iconBg} border ${a.border} flex items-center justify-center mx-auto mb-7 text-lg font-semibold tracking-[0.28em] uppercase ${a.iconText}`}>
               {icon}
             </div>
             <h2 className="text-3xl font-extrabold text-[var(--color-primary)] tracking-tight mb-3">

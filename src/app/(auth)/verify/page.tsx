@@ -9,7 +9,7 @@ import { fetchApi } from "@/lib/api";
 const config: AuthPageConfig = {
   role: "provider",
   dashboardRoute: "/provider",
-  icon: "🩺",
+  icon: "MD",
   tagline: "Physician Portal",
   features: [
     "Verify your email from your inbox",

@@ -71,6 +71,7 @@ export default function PatientsPage() {
           const lastEnded = [...endedBookings].sort((a, b) => bookingTimeValue(b) - bookingTimeValue(a))[0];
           return {
             id: patient.id,
+            patientRecordNumber: patient.patientRecordNumber || "",
             init: initials || "PT",
             color: "teal",
             name,
@@ -302,7 +303,7 @@ export default function PatientsPage() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         title={selectedPatient?.name ?? "Patient Profile"}
-        subtitle={selectedPatient?.email || "Patient details"}
+        subtitle={selectedPatient?.patientRecordNumber || selectedPatient?.email || "Patient details"}
       >
         {selectedPatient ? (
           <div className="space-y-6">
@@ -317,6 +318,10 @@ export default function PatientsPage() {
                 </div>
               </div>
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-[var(--color-text-muted)]">
+                <div>
+                  <div className="uppercase tracking-wide">Patient ID</div>
+                  <div className="text-[var(--color-text)] font-medium">{selectedPatient.patientRecordNumber || "Not assigned"}</div>
+                </div>
                 <div>
                   <div className="uppercase tracking-wide">Email</div>
                   <div className="text-[var(--color-text)] font-medium truncate">{selectedPatient.email || "Not provided"}</div>

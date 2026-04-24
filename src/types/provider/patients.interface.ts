@@ -8,6 +8,7 @@ export type PatientFilter   = "All" | "Active" | "High Risk" | "Recent";
 
 export interface PatientRow {
   id?:      string;
+  patientRecordNumber?: string;
   init:      string;
   color:     AvatarColor;
   name:      string;
