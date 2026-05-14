@@ -19,7 +19,9 @@ type IconName =
   | "bolt"
   | "medical"
   | "search"
-  | "help";
+  | "help"
+  | "plus"
+  | "trash";
 
 type IconProps = {
   name: IconName;
@@ -140,6 +142,16 @@ const icons: Record<IconName, ReactElement> = {
       <circle cx="12" cy="12" r="9" />
       <path d="M9.5 9a2.5 2.5 0 1 1 3.6 2.2c-.9.4-1.6 1.2-1.6 2.3" />
       <circle cx="12" cy="17" r="0.8" />
+    </>
+  ),
+  plus: (
+    <>
+      <path d="M12 5v14M5 12h14" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
     </>
   ),
 };

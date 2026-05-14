@@ -10,12 +10,16 @@ export type AvailabilityRule = {
   timezone?: string | null;
 };
 
+export type WeeklyAvailabilitySlot = {
+  id?: string;
+  startTime: string;
+  endTime: string;
+};
+
 export type WeeklyAvailabilityDay = {
   weekday: number;
   enabled: boolean;
-  startTime: string | null;
-  endTime: string | null;
-  ruleId: string | null;
+  slots: WeeklyAvailabilitySlot[];
 };
 
 export type AvailabilityOverride = {
@@ -27,24 +31,29 @@ export type AvailabilityOverride = {
   note?: string | null;
 };
 
-export async function getWeeklyAvailability(): Promise<WeeklyAvailabilityDay[]> {
+export type WeeklyAvailabilityResponse = {
+  timezone: string;
+  days: WeeklyAvailabilityDay[];
+};
+
+export async function getWeeklyAvailability(): Promise<WeeklyAvailabilityResponse> {
   const resp = await fetchApi("/providers/schedule/weekly");
-  return Array.isArray(resp) ? resp : [];
+  return resp && typeof resp === "object" && "days" in resp ? resp : { timezone: "UTC", days: [] };
 }
 
 export async function saveWeeklyAvailability(payload: {
+  timezone: string;
   days: Array<{
     weekday: number;
     enabled: boolean;
-    startTime?: string | null;
-    endTime?: string | null;
+    slots: Array<{ startTime: string; endTime: string }>;
   }>;
-}): Promise<WeeklyAvailabilityDay[]> {
+}): Promise<WeeklyAvailabilityResponse> {
   const resp = await fetchApi("/providers/schedule/weekly", {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  return Array.isArray(resp) ? resp : [];
+  return resp && typeof resp === "object" && "days" in resp ? resp : { timezone: "UTC", days: [] };
 }
 
 export async function getAvailabilityRules(): Promise<AvailabilityRule[]> {
