@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Badge from "@/components/shared/Badge";
 import Button from "@/components/shared/Button";
-import Card, { CardHeader } from "@/components/shared/Card";
+import Card from "@/components/shared/Card";
 import Icon from "@/components/shared/Icon";
 import { cn } from "@/lib/utils";
-import { bookingStatusVariant, ProviderBooking } from "@/types";
+import { bookingStatusVariant, ProviderBooking, BookingStatus } from "@/types";
 import { getProviderBookings } from "@/services/provider-bookings.service";
 import {
   getWeeklyAvailability,
@@ -240,7 +240,7 @@ export default function SchedulePage() {
       </div>
 
       {flashMessage && (
-        <div className="animate-in fade-in slide-in-from-top-4 duration-300 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-4 text-sm font-semibold text-emerald-600 flex items-center gap-3">
+        <div className="animate-in fade-in slide-in-from-top-4 duration-300 rounded-2xl border border-[var(--color-success-soft-border)] bg-[var(--color-success-soft)] px-4 py-4 text-sm font-semibold text-[var(--color-success)] flex items-center gap-3">
           <Icon name="check" className="w-5 h-5" />
           {flashMessage}
         </div>
@@ -248,39 +248,39 @@ export default function SchedulePage() {
 
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.5fr_1fr]">
         <div className="space-y-6">
-          <Card className="rounded-3xl border-none shadow-sm ring-1 ring-slate-200 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <Card className="rounded-3xl border-none shadow-sm ring-1 ring-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
+            <div className="p-6 border-b border-[var(--color-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-lg font-bold text-slate-800">Weekly Slots</h3>
-                <p className="text-sm text-slate-500">Configure your daily working hours</p>
+                <h3 className="text-lg font-bold text-[var(--color-text)]">Weekly Slots</h3>
+                <p className="text-sm text-[var(--color-text-muted)]">Configure your daily working hours</p>
               </div>
-              <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-2xl ring-1 ring-slate-200">
-                <span className="text-xs font-semibold text-slate-500 ml-2">Timezone</span>
+              <div className="flex items-center gap-3 bg-[var(--color-surface-soft)] p-1.5 rounded-2xl ring-1 ring-[var(--color-border)]">
+                <span className="text-xs font-semibold text-[var(--color-text-muted)] ml-2">Timezone</span>
                 <select
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  className="bg-white border-none rounded-xl text-sm font-medium py-1.5 px-3 focus:ring-2 focus:ring-primary shadow-sm"
+                  className="bg-[var(--color-surface)] border-none rounded-xl text-sm font-medium py-1.5 px-3 focus:ring-2 focus:ring-[var(--color-primary)] shadow-sm text-[var(--color-text)]"
                 >
                   {COMMON_TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
                 </select>
               </div>
             </div>
 
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-[var(--color-border)]">
               {weeklySchedule.map((day) => (
-                <div key={day.weekday} className={cn("p-6 transition-colors", day.enabled ? "bg-white" : "bg-slate-50/50")}>
+                <div key={day.weekday} className={cn("p-6 transition-colors", day.enabled ? "bg-[var(--color-surface)]" : "bg-[var(--color-surface-soft)]/50")}>
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                     <div className="flex items-center gap-4 min-w-[140px]">
                       <button
                         onClick={() => handleToggleDay(day.weekday)}
                         className={cn(
                           "relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300",
-                          day.enabled ? "bg-primary shadow-[0_0_12px_rgba(var(--color-primary-rgb),0.3)]" : "bg-slate-300"
+                          day.enabled ? "bg-[var(--color-primary)]" : "bg-slate-300 dark:bg-slate-700"
                         )}
                       >
                         <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300", day.enabled ? "translate-x-6" : "translate-x-1")} />
                       </button>
-                      <span className={cn("font-bold text-base", day.enabled ? "text-slate-800" : "text-slate-400")}>
+                      <span className={cn("font-bold text-base", day.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")}>
                         {WEEKDAYS[day.weekday]}
                       </span>
                     </div>
@@ -291,24 +291,24 @@ export default function SchedulePage() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {day.slots.map((slot, idx) => (
                               <div key={idx} className="flex items-center gap-2 group animate-in fade-in zoom-in-95 duration-200">
-                                <div className="flex flex-1 items-center gap-2 bg-slate-50 rounded-2xl p-2 ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-primary transition-all">
+                                <div className="flex flex-1 items-center gap-2 bg-[var(--color-surface-soft)] rounded-2xl p-2 ring-1 ring-[var(--color-border)] focus-within:ring-2 focus-within:ring-[var(--color-primary)] transition-all">
                                   <input
                                     type="time"
                                     value={slot.startTime}
                                     onChange={(e) => handleUpdateSlot(day.weekday, idx, "startTime", e.target.value)}
-                                    className="bg-transparent border-none text-sm font-medium w-full focus:ring-0 p-1"
+                                    className="bg-transparent border-none text-sm font-medium w-full focus:ring-0 p-1 text-[var(--color-text)]"
                                   />
-                                  <span className="text-slate-400 text-xs">—</span>
+                                  <span className="text-[var(--color-text-muted)] text-xs">—</span>
                                   <input
                                     type="time"
                                     value={slot.endTime}
                                     onChange={(e) => handleUpdateSlot(day.weekday, idx, "endTime", e.target.value)}
-                                    className="bg-transparent border-none text-sm font-medium w-full focus:ring-0 p-1"
+                                    className="bg-transparent border-none text-sm font-medium w-full focus:ring-0 p-1 text-[var(--color-text)]"
                                   />
                                 </div>
                                 <button
                                   onClick={() => handleRemoveSlot(day.weekday, idx)}
-                                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                                  className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-soft)] rounded-xl transition-colors"
                                 >
                                   <Icon name="trash" size={18} />
                                 </button>
@@ -317,14 +317,14 @@ export default function SchedulePage() {
                           </div>
                           <button
                             onClick={() => handleAddSlot(day.weekday)}
-                            className="text-xs font-bold text-primary hover:text-primary-hover flex items-center gap-1.5 py-2 px-3 rounded-xl hover:bg-primary/5 transition-colors"
+                            className="text-xs font-bold text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] flex items-center gap-1.5 py-2 px-3 rounded-xl hover:bg-[var(--color-primary-soft)] transition-colors"
                           >
                             <Icon name="plus" size={14} />
                             Add time slot
                           </button>
                         </>
                       ) : (
-                        <p className="text-sm text-slate-400 italic py-2">Unavailable for bookings</p>
+                        <p className="text-sm text-[var(--color-text-muted)] italic py-2">Unavailable for bookings</p>
                       )}
                     </div>
                   </div>
@@ -332,14 +332,14 @@ export default function SchedulePage() {
               ))}
             </div>
 
-            <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-              <p className="text-xs text-slate-500 max-w-sm">
+            <div className="p-6 bg-[var(--color-surface-soft)] border-t border-[var(--color-border)] flex items-center justify-between">
+              <p className="text-xs text-[var(--color-text-muted)] max-w-sm">
                 Slots will be visible to patients for booking. Ensure you allow enough buffer time between appointments.
               </p>
               <Button
                 onClick={handleSave}
                 disabled={savingWeekly}
-                className="rounded-2xl px-8 shadow-lg shadow-primary/20"
+                className="rounded-2xl px-8 shadow-lg bg-[var(--color-primary)] text-[var(--color-on-primary)]"
               >
                 {savingWeekly ? "Saving changes..." : "Save Schedule"}
               </Button>
@@ -348,37 +348,37 @@ export default function SchedulePage() {
         </div>
 
         <div className="space-y-6">
-          <Card className="rounded-3xl border-none shadow-sm ring-1 ring-slate-200 p-6">
-            <h3 className="font-bold text-slate-800 text-lg">Booked Overview</h3>
-            <p className="text-sm text-slate-500 mt-1">See your upcoming confirmed visits</p>
+          <Card className="rounded-3xl border-none shadow-sm ring-1 ring-[var(--color-border)] p-6 bg-[var(--color-surface)]">
+            <h3 className="font-bold text-[var(--color-text)] text-lg">Booked Overview</h3>
+            <p className="text-sm text-[var(--color-text-muted)] mt-1">See your upcoming confirmed visits</p>
             
             <div className="mt-6 space-y-4">
               {loading ? (
-                <div className="py-12 flex flex-col items-center justify-center text-slate-400">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4" />
+                <div className="py-12 flex flex-col items-center justify-center text-[var(--color-text-muted)]">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)] mb-4" />
                   <p className="text-sm">Fetching your bookings...</p>
                 </div>
               ) : upcomingBookedDays.length === 0 ? (
-                <div className="py-12 text-center rounded-2xl border-2 border-dashed border-slate-100">
-                  <Icon name="calendar" className="mx-auto w-10 h-10 text-slate-200 mb-3" />
-                  <p className="text-sm text-slate-400 font-medium">No confirmed bookings yet</p>
+                <div className="py-12 text-center rounded-2xl border-2 border-dashed border-[var(--color-border)]">
+                  <Icon name="calendar" className="mx-auto w-10 h-10 text-[var(--color-text-muted)]/30 mb-3" />
+                  <p className="text-sm text-[var(--color-text-muted)] font-medium">No confirmed bookings yet</p>
                 </div>
               ) : (
                 upcomingBookedDays.map((group) => (
                   <div key={group.key} className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <div className="h-px flex-1 bg-slate-100" />
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{group.label}</span>
-                      <div className="h-px flex-1 bg-slate-100" />
+                      <div className="h-px flex-1 bg-[var(--color-border)]" />
+                      <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{group.label}</span>
+                      <div className="h-px flex-1 bg-[var(--color-border)]" />
                     </div>
                     {group.bookings.map((booking: ProviderBooking) => (
-                      <div key={booking.id} className="p-4 rounded-2xl bg-white ring-1 ring-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                      <div key={booking.id} className="p-4 rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <p className="text-sm font-bold text-slate-800">{booking.patientName}</p>
+                            <p className="text-sm font-bold text-[var(--color-text)]">{booking.patientName}</p>
                             <div className="flex items-center gap-1.5 mt-1">
-                              <Icon name="clock" size={12} className="text-slate-400" />
-                              <span className="text-xs font-medium text-slate-500">
+                              <Icon name="clock" size={12} className="text-[var(--color-text-muted)]" />
+                              <span className="text-xs font-medium text-[var(--color-text-muted)]">
                                 {booking.preferredTime}
                               </span>
                             </div>
@@ -395,18 +395,18 @@ export default function SchedulePage() {
             </div>
           </Card>
 
-          <div className="rounded-3xl bg-primary/5 p-6 border border-primary/10">
-            <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-2">
+          <div className="rounded-3xl bg-[var(--color-primary-soft)] p-6 border border-[var(--color-primary-soft-border)]">
+            <h4 className="text-sm font-bold text-[var(--color-primary)] mb-2 flex items-center gap-2">
               <Icon name="help" size={16} />
               Scheduling Tips
             </h4>
-            <ul className="text-xs text-slate-600 space-y-3">
+            <ul className="text-xs text-[var(--color-text)] space-y-3 opacity-80">
               <li className="flex gap-2">
-                <span className="text-primary font-bold">•</span>
+                <span className="text-[var(--color-primary)] font-bold">•</span>
                 Use the multi-slot feature to set breaks or split shifts during the day.
               </li>
               <li className="flex gap-2">
-                <span className="text-primary font-bold">•</span>
+                <span className="text-[var(--color-primary)] font-bold">•</span>
                 Double check your timezone to ensure patients see the correct local times.
               </li>
             </ul>
