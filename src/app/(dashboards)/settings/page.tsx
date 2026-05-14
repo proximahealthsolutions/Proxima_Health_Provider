@@ -106,8 +106,7 @@ export default function SettingsPage() {
   }, [profile]);
 
   function setField<K extends keyof ProviderProfile>(key: K, value: ProviderProfile[K]) {
-    if (!profile) return;
-    setProfile({ ...profile, [key]: value });
+    setProfile((prev) => (prev ? { ...prev, [key]: value } : null));
   }
 
   async function handleSave() {

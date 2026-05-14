@@ -58,17 +58,17 @@
   --color-primary: #89abff;
   --color-primary-hover: #6f95f4;
   --color-primary-active: #5a7bd1;
-  --color-primary-soft: rgba(137, 171, 255, 0.16);
-  --color-primary-soft-border: rgba(137, 171, 255, 0.35);
+  --color-primary-soft: rgba(137, 171, 255, 0.22);
+  --color-primary-soft-border: rgba(137, 171, 255, 0.4);
   --color-primary-contrast-soft: #dbe7ff;
-  --color-primary-muted: rgba(192, 212, 255, 0.8);
-  --color-primary-muted-strong: rgba(209, 224, 255, 0.9);
-  --color-primary-faint: rgba(173, 196, 245, 0.55);
+  --color-primary-muted: rgba(192, 212, 255, 0.85);
+  --color-primary-muted-strong: rgba(209, 224, 255, 0.95);
+  --color-primary-faint: rgba(173, 196, 245, 0.65);
 
   --color-accent: #33cc66;
   --color-accent-strong: #6ee79a;
-  --color-accent-soft: rgba(51, 204, 102, 0.22);
-  --color-accent-soft-border: rgba(51, 204, 102, 0.45);
+  --color-accent-soft: rgba(51, 204, 102, 0.28);
+  --color-accent-soft-border: rgba(51, 204, 102, 0.5);
 
   --color-bg: #0b1220;
   --color-surface: #10192b;
@@ -81,22 +81,22 @@
   --color-success: #3dcf85;
   --color-success-hover: #2fb56f;
   --color-success-active: #26955c;
-  --color-success-soft: rgba(61, 207, 133, 0.2);
-  --color-success-strong: #8ce8b8;
+  --color-success-soft: rgba(61, 207, 133, 0.28);
+  --color-success-strong: #a7f3d0;
 
   --color-danger: #ff6670;
   --color-danger-hover: #ee4b56;
   --color-danger-active: #cd3d46;
-  --color-danger-soft: rgba(255, 102, 112, 0.2);
-  --color-danger-soft-border: rgba(255, 102, 112, 0.4);
+  --color-danger-soft: rgba(255, 102, 112, 0.28);
+  --color-danger-soft-border: rgba(255, 102, 112, 0.5);
 
   --color-warning: #f2ba4d;
-  --color-warning-soft: rgba(242, 186, 77, 0.2);
-  --color-warning-strong: #ffd281;
+  --color-warning-soft: rgba(242, 186, 77, 0.28);
+  --color-warning-strong: #fde68a;
 
   --color-info: #4ab8c4;
-  --color-info-soft: rgba(74, 184, 196, 0.2);
-  --color-info-strong: #8cd9e1;
+  --color-info-soft: rgba(74, 184, 196, 0.28);
+  --color-info-strong: #a5f3fc;
 
   --color-banner-veil: rgba(255, 255, 255, 0.14);
   --color-banner-veil-hover: rgba(255, 255, 255, 0.22);
