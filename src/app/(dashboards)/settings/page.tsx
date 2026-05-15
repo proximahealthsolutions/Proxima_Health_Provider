@@ -389,6 +389,12 @@ export default function SettingsPage() {
                   <span className="text-right text-[var(--color-text)]">{profile.street ?? "—"}</span>
                 </div>
                 <div className="flex justify-between gap-3">
+                  <span>Physician ID</span>
+                  <span className="text-right text-[var(--color-text)] text-[10px] break-all">
+                    {profile.id || "—"}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-3">
                   <span>Location</span>
                   <span className="text-right text-[var(--color-text)]">
                     {[profile.city, profile.state, profile.country].filter(Boolean).join(", ") || "—"}
