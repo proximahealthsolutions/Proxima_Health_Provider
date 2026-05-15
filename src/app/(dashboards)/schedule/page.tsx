@@ -60,13 +60,10 @@ export default function SchedulePage() {
   const [bookings, setBookings] = useState<ProviderBooking[]>([]);
   const [weeklySchedule, setWeeklySchedule] = useState<WeeklyAvailabilityDay[]>(buildEmptySchedule());
   const [overrides, setOverrides] = useState<AvailabilityOverride[]>([]);
-  const [timezone, setTimezone] = useState("UTC");
   const [loading, setLoading] = useState(true);
-  const [savingWeekly, setSavingWeekly] = useState(false);
-  const [activeTab, setActiveTab] = useState<"weekly" | "specific">("weekly");
   const [flashMessage, setFlashMessage] = useState("");
 
-  // New Override State
+  // Override State
   const [newOverrideDate, setNewOverrideDate] = useState("");
   const [newOverrideStart, setNewOverrideStart] = useState("09:00");
   const [newOverrideEnd, setNewOverrideEnd] = useState("10:00");
@@ -77,19 +74,14 @@ export default function SchedulePage() {
 
     (async () => {
       try {
-        const [bookingData, weeklyData, overrideData] = await Promise.all([
+        const [bookingData, overrideData] = await Promise.all([
           getProviderBookings(),
-          getWeeklyAvailability(),
           getAvailabilityOverrides(),
         ]);
         if (!mounted) return;
 
         setBookings(sortByStartAt(bookingData));
         setOverrides(overrideData || []);
-        if (weeklyData && weeklyData.days) {
-          setWeeklySchedule(weeklyData.days);
-          setTimezone(weeklyData.timezone || "UTC");
-        }
       } catch {
         if (!mounted) return;
         setBookings([]);
@@ -108,8 +100,6 @@ export default function SchedulePage() {
     setFlashMessage(message);
     window.setTimeout(() => setFlashMessage(""), 3000);
   }
-
-  const activeDaysCount = weeklySchedule.filter((day) => day.enabled).length;
 
   const bookedDayGroups = useMemo(() => {
     const grouped = sortByStartAt(
@@ -146,88 +136,6 @@ export default function SchedulePage() {
     [bookedDayGroups]
   );
 
-  const stats = useMemo(() => {
-    const requested = bookings.filter((booking) => booking.status === "requested").length;
-    const accepted = bookings.filter((booking) => booking.status === "accepted").length;
-    const inProgress = bookings.filter((booking) => booking.status === "in_progress").length;
-    const bookedDays = bookedDayGroups.length;
-    return { requested, accepted, inProgress, bookedDays };
-  }, [bookedDayGroups.length, bookings]);
-
-  function handleAddSlot(weekday: number) {
-    setWeeklySchedule((prev) =>
-      prev.map((day) => {
-        if (day.weekday !== weekday) return day;
-        return {
-          ...day,
-          enabled: true,
-          slots: [...day.slots, { startTime: "09:00", endTime: "10:00" }],
-        };
-      })
-    );
-  }
-
-  function handleRemoveSlot(weekday: number, index: number) {
-    setWeeklySchedule((prev) =>
-      prev.map((day) => {
-        if (day.weekday !== weekday) return day;
-        const nextSlots = day.slots.filter((_, i) => i !== index);
-        return {
-          ...day,
-          enabled: nextSlots.length > 0,
-          slots: nextSlots,
-        };
-      })
-    );
-  }
-
-  function handleUpdateSlot(weekday: number, index: number, field: "startTime" | "endTime", value: string) {
-    setWeeklySchedule((prev) =>
-      prev.map((day) => {
-        if (day.weekday !== weekday) return day;
-        const nextSlots = day.slots.map((slot, i) =>
-          i === index ? { ...slot, [field]: value } : slot
-        );
-        return { ...day, slots: nextSlots };
-      })
-    );
-  }
-
-  function handleToggleDay(weekday: number) {
-    setWeeklySchedule((prev) =>
-      prev.map((day) => {
-        if (day.weekday !== weekday) return day;
-        const nextEnabled = !day.enabled;
-        return {
-          ...day,
-          enabled: nextEnabled,
-          slots: nextEnabled && day.slots.length === 0 ? [{ startTime: "09:00", endTime: "10:00" }] : day.slots,
-        };
-      })
-    );
-  }
-
-  async function handleSave() {
-    setSavingWeekly(true);
-    try {
-      const resp = await saveWeeklyAvailability({
-        timezone,
-        days: weeklySchedule.map((day) => ({
-          weekday: day.weekday,
-          enabled: day.enabled,
-          slots: day.enabled ? day.slots.map(s => ({ startTime: s.startTime, endTime: s.endTime })) : [],
-        })),
-      });
-      setWeeklySchedule(resp.days);
-      setTimezone(resp.timezone);
-      showFlash("Schedule updated successfully.");
-    } catch (err: any) {
-      showFlash(err?.message || "Failed to save schedule.");
-    } finally {
-      setSavingWeekly(false);
-    }
-  }
-
   async function handleAddOverride() {
     if (!newOverrideDate) return;
     setIsAddingOverride(true);
@@ -240,7 +148,7 @@ export default function SchedulePage() {
       });
       setOverrides((prev) => [...prev, resp].sort((a, b) => a.date.localeCompare(b.date)));
       setNewOverrideDate("");
-      showFlash("Specific date availability added.");
+      showFlash("Availability for specific date added.");
     } catch (err: any) {
       showFlash(err?.message || "Failed to add availability.");
     } finally {
@@ -261,197 +169,93 @@ export default function SchedulePage() {
   return (
     <div className="flex flex-col gap-6 p-4 lg:p-8 max-w-7xl mx-auto">
       {/* Header Section */}
-      <div className="rounded-3xl bg-gradient-to-br from-[#1e293b] to-[#334155] p-8 text-white shadow-xl overflow-hidden relative">
-        <div className="relative z-10">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h1 className="text-3xl font-extrabold tracking-tight">Availability Center</h1>
-              <p className="mt-2 text-slate-300 max-w-md">
-                Customize your schedule with precision. Choose between a recurring weekly pattern or specific dates.
-              </p>
+      <div className="rounded-[2.5rem] bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#334155] p-10 text-white shadow-2xl overflow-hidden relative border border-slate-700/50">
+        <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] font-bold uppercase tracking-wider mb-4">
+              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              Manual Selection Mode
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Badge className="bg-emerald-500/10 border-emerald-500/20 text-emerald-400 py-1.5 px-4 rounded-full">
-                {activeDaysCount} Weekly Days
-              </Badge>
-              <Badge className="bg-blue-500/10 border-blue-500/20 text-blue-400 py-1.5 px-4 rounded-full">
-                {overrides.length} Specific Dates
-              </Badge>
+            <h1 className="text-4xl lg:text-5xl font-black tracking-tight leading-tight">
+              Manage Your <span className="text-primary italic">Availability</span>
+            </h1>
+            <p className="mt-4 text-slate-300 text-lg leading-relaxed font-medium">
+              You are in full control. Only the dates you manually publish below will be available for patient bookings.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <div className="flex flex-col items-center bg-primary rounded-3xl p-6 shadow-lg shadow-primary/20 w-full sm:w-auto min-w-[160px]">
+              <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest mb-1 text-center">Active Dates</span>
+              <span className="text-4xl font-black text-white">{overrides.length}</span>
             </div>
           </div>
         </div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -mr-32 -mt-32" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-[100px] -mr-32 -mt-32 opacity-50" />
       </div>
 
       {flashMessage && (
-        <div className="animate-in fade-in slide-in-from-top-4 duration-300 rounded-2xl border border-[var(--color-success-soft-border)] bg-[var(--color-success-soft)] px-4 py-4 text-sm font-semibold text-[var(--color-success)] flex items-center gap-3">
-          <Icon name="check" className="w-5 h-5" />
-          {flashMessage}
+        <div className="animate-in fade-in slide-in-from-top-4 duration-500 rounded-[1.5rem] border border-[var(--color-success-soft-border)] bg-[var(--color-success-soft)] px-6 py-4 text-sm font-bold text-[var(--color-success)] flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 rounded-full bg-[var(--color-success)] text-white">
+              <Icon name="check" className="w-3.5 h-3.5" />
+            </div>
+            {flashMessage}
+          </div>
+          <button onClick={() => setFlashMessage("")} className="opacity-50 hover:opacity-100 transition-opacity">
+            <Icon name="close" size={16} />
+          </button>
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.5fr_1fr]">
-        <div className="space-y-6">
-          {/* Tabs */}
-          <div className="flex p-1 bg-[var(--color-surface-soft)] rounded-2xl w-fit ring-1 ring-[var(--color-border)]">
-            <button
-              onClick={() => setActiveTab("weekly")}
-              className={cn(
-                "px-6 py-2 rounded-xl text-sm font-bold transition-all",
-                activeTab === "weekly" ? "bg-[var(--color-surface)] text-[var(--color-primary)] shadow-sm" : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
-              )}
-            >
-              Weekly Pattern
-            </button>
-            <button
-              onClick={() => setActiveTab("specific")}
-              className={cn(
-                "px-6 py-2 rounded-xl text-sm font-bold transition-all",
-                activeTab === "specific" ? "bg-[var(--color-surface)] text-[var(--color-primary)] shadow-sm" : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
-              )}
-            >
-              Specific Dates
-            </button>
-          </div>
-
-          {activeTab === "weekly" ? (
-            <Card className="rounded-3xl border-none shadow-sm ring-1 ring-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
-              <div className="p-6 border-b border-[var(--color-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-lg font-bold text-[var(--color-text)]">Recurring Schedule</h3>
-                  <p className="text-sm text-[var(--color-text-muted)]">Availability that repeats every week</p>
-                </div>
-                <div className="flex items-center gap-3 bg-[var(--color-surface-soft)] p-1.5 rounded-2xl ring-1 ring-[var(--color-border)]">
-                  <span className="text-xs font-semibold text-[var(--color-text-muted)] ml-2">Timezone</span>
-                  <select
-                    value={timezone}
-                    onChange={(e) => setTimezone(e.target.value)}
-                    className="bg-[var(--color-surface)] border-none rounded-xl text-sm font-medium py-1.5 px-3 focus:ring-2 focus:ring-[var(--color-primary)] shadow-sm text-[var(--color-text)]"
-                  >
-                    {COMMON_TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
-                  </select>
+      <div className="grid grid-cols-1 gap-10 xl:grid-cols-[1.6fr_1fr]">
+        <div className="space-y-8">
+          {/* Main Controls Card */}
+          <Card className="rounded-[2.5rem] border-none shadow-xl ring-1 ring-slate-200 dark:ring-slate-800 overflow-hidden bg-[var(--color-surface)]">
+            <div className="p-8 space-y-10 animate-in fade-in duration-500">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-slate-100 dark:border-slate-800">
+                <div className="space-y-1">
+                  <h3 className="text-2xl font-black text-slate-900 dark:text-white">Individual Date Selection</h3>
+                  <p className="text-[var(--color-text-muted)] font-medium">Select specific calendar days to open for appointments.</p>
                 </div>
               </div>
 
-              <div className="divide-y divide-[var(--color-border)]">
-                {weeklySchedule.map((day) => (
-                  <div key={day.weekday} className={cn("p-6 transition-colors", day.enabled ? "bg-[var(--color-surface)]" : "bg-[var(--color-surface-soft)]/50")}>
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-                      <div className="flex items-center gap-4 min-w-[140px]">
-                        <button
-                          onClick={() => handleToggleDay(day.weekday)}
-                          className={cn(
-                            "relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300",
-                            day.enabled ? "bg-[var(--color-primary)]" : "bg-slate-300 dark:bg-slate-700"
-                          )}
-                        >
-                          <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300", day.enabled ? "translate-x-6" : "translate-x-1")} />
-                        </button>
-                        <span className={cn("font-bold text-base", day.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")}>
-                          {WEEKDAYS[day.weekday]}
-                        </span>
-                      </div>
-
-                      <div className="flex-1 space-y-3">
-                        {day.enabled ? (
-                          <>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              {day.slots.map((slot, idx) => (
-                                <div key={idx} className="flex items-center gap-2 group animate-in fade-in zoom-in-95 duration-200">
-                                  <div className="flex flex-1 items-center gap-2 bg-[var(--color-surface-soft)] rounded-2xl p-2 ring-1 ring-[var(--color-border)] focus-within:ring-2 focus-within:ring-[var(--color-primary)] transition-all">
-                                    <input
-                                      type="time"
-                                      value={slot.startTime}
-                                      onChange={(e) => handleUpdateSlot(day.weekday, idx, "startTime", e.target.value)}
-                                      className="bg-transparent border-none text-sm font-medium w-full focus:ring-0 p-1 text-[var(--color-text)]"
-                                    />
-                                    <span className="text-[var(--color-text-muted)] text-xs">—</span>
-                                    <input
-                                      type="time"
-                                      value={slot.endTime}
-                                      onChange={(e) => handleUpdateSlot(day.weekday, idx, "endTime", e.target.value)}
-                                      className="bg-transparent border-none text-sm font-medium w-full focus:ring-0 p-1 text-[var(--color-text)]"
-                                    />
-                                  </div>
-                                  <button
-                                    onClick={() => handleRemoveSlot(day.weekday, idx)}
-                                    className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-soft)] rounded-xl transition-colors"
-                                  >
-                                    <Icon name="trash" size={18} />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                            <button
-                              onClick={() => handleAddSlot(day.weekday)}
-                              className="text-xs font-bold text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] flex items-center gap-1.5 py-2 px-3 rounded-xl hover:bg-[var(--color-primary-soft)] transition-colors"
-                            >
-                              <Icon name="plus" size={14} />
-                              Add time slot
-                            </button>
-                          </>
-                        ) : (
-                          <p className="text-sm text-[var(--color-text-muted)] italic py-2">No weekly slots</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="p-6 bg-[var(--color-surface-soft)] border-t border-[var(--color-border)] flex items-center justify-between">
-                <p className="text-xs text-[var(--color-text-muted)] max-w-sm">
-                  These slots will repeat every week. Turn them all off if you only want to use date-specific availability.
-                </p>
-                <Button
-                  onClick={handleSave}
-                  disabled={savingWeekly}
-                  className="rounded-2xl px-8 shadow-lg bg-[var(--color-primary)] text-[var(--color-on-primary)]"
-                >
-                  {savingWeekly ? "Saving changes..." : "Save Weekly Schedule"}
-                </Button>
-              </div>
-            </Card>
-          ) : (
-            <Card className="rounded-3xl border-none shadow-sm ring-1 ring-[var(--color-border)] overflow-hidden bg-[var(--color-surface)] p-6">
-              <div className="mb-8">
-                <h3 className="text-lg font-bold text-[var(--color-text)]">Date-Specific Availability</h3>
-                <p className="text-sm text-[var(--color-text-muted)]">Add slots for specific calendar dates (doesn't repeat)</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-10">
+                {/* Add Form */}
                 <div className="space-y-6">
-                  <div className="bg-[var(--color-surface-soft)] p-6 rounded-3xl ring-1 ring-[var(--color-border)] space-y-4">
-                    <h4 className="text-sm font-bold text-[var(--color-text)]">Add New Availability</h4>
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-8 rounded-[2rem] ring-1 ring-slate-200 dark:ring-slate-800 space-y-6 shadow-sm">
+                    <div className="inline-flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest mb-2">
+                      <Icon name="plus" size={16} />
+                      Publish Availability
+                    </div>
                     
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase ml-1">Select Date</label>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Calendar Date</label>
                       <input
                         type="date"
                         value={newOverrideDate}
                         onChange={(e) => setNewOverrideDate(e.target.value)}
                         min={new Date().toISOString().split("T")[0]}
-                        className="w-full bg-[var(--color-surface)] border-[var(--color-border)] rounded-2xl text-sm font-medium p-3 focus:ring-2 focus:ring-[var(--color-primary)] text-[var(--color-text)] shadow-sm"
+                        className="w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-2xl text-base font-bold p-4 focus:ring-4 focus:ring-primary/20 text-slate-900 dark:text-white shadow-sm transition-all"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase ml-1">Start Time</label>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Starts At</label>
                         <input
                           type="time"
                           value={newOverrideStart}
                           onChange={(e) => setNewOverrideStart(e.target.value)}
-                          className="w-full bg-[var(--color-surface)] border-[var(--color-border)] rounded-2xl text-sm font-medium p-3 focus:ring-2 focus:ring-[var(--color-primary)] text-[var(--color-text)] shadow-sm"
+                          className="w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-2xl text-base font-bold p-4 focus:ring-4 focus:ring-primary/20 text-slate-900 dark:text-white shadow-sm transition-all"
                         />
                       </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase ml-1">End Time</label>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Ends At</label>
                         <input
                           type="time"
                           value={newOverrideEnd}
                           onChange={(e) => setNewOverrideEnd(e.target.value)}
-                          className="w-full bg-[var(--color-surface)] border-[var(--color-border)] rounded-2xl text-sm font-medium p-3 focus:ring-2 focus:ring-[var(--color-primary)] text-[var(--color-text)] shadow-sm"
+                          className="w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-2xl text-base font-bold p-4 focus:ring-4 focus:ring-primary/20 text-slate-900 dark:text-white shadow-sm transition-all"
                         />
                       </div>
                     </div>
@@ -459,87 +263,139 @@ export default function SchedulePage() {
                     <Button
                       onClick={handleAddOverride}
                       disabled={isAddingOverride || !newOverrideDate}
-                      className="w-full rounded-2xl py-3 shadow-md bg-[var(--color-primary)] text-[var(--color-on-primary)] mt-2"
+                      className="w-full rounded-2xl py-4 font-black uppercase tracking-widest shadow-xl shadow-primary/20 bg-primary text-white hover:scale-[1.02] active:scale-95 transition-all"
                     >
-                      {isAddingOverride ? "Adding..." : "Add Availability"}
+                      {isAddingOverride ? "Publishing..." : "Add to Schedule"}
                     </Button>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h4 className="text-sm font-bold text-[var(--color-text)] flex items-center gap-2">
-                    <Icon name="calendar" size={16} />
-                    Current Specific Slots
-                  </h4>
+                {/* List */}
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between px-2">
+                    <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Your Active Slots</h4>
+                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{overrides.length} Total</span>
+                  </div>
+
                   {overrides.length === 0 ? (
-                    <div className="py-12 text-center rounded-3xl border-2 border-dashed border-[var(--color-border)]">
-                      <p className="text-sm text-[var(--color-text-muted)]">No specific dates added yet.</p>
+                    <div className="flex flex-col items-center justify-center py-16 px-8 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10">
+                      <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600 mb-4">
+                        <Icon name="calendar" size={32} />
+                      </div>
+                      <p className="text-sm text-slate-500 font-bold">No custom dates published</p>
+                      <p className="text-xs text-slate-400 mt-1 max-w-[200px] text-center">Start by adding a specific date to the left.</p>
                     </div>
                   ) : (
-                    <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="grid grid-cols-1 gap-4 max-h-[500px] overflow-y-auto pr-3 custom-scrollbar">
                       {overrides.map((override) => (
-                        <div key={override.id} className="p-4 rounded-2xl bg-[var(--color-surface-soft)]/50 ring-1 ring-[var(--color-border)] flex items-center justify-between group hover:bg-[var(--color-surface-soft)] transition-colors">
-                          <div>
-                            <p className="text-sm font-bold text-[var(--color-text)]">
-                              {new Date(override.date).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric", weekday: "short" })}
-                            </p>
-                            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                              {override.startTime} — {override.endTime}
-                            </p>
+                        <div key={override.id} className="group relative p-5 rounded-[1.5rem] bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 hover:ring-primary/50 hover:shadow-lg transition-all duration-300">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="flex flex-col items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 text-primary font-black">
+                                <span className="text-[10px] uppercase">{new Date(override.date).toLocaleDateString([], { month: 'short' })}</span>
+                                <span className="text-lg leading-none">{new Date(override.date).getDate()}</span>
+                              </div>
+                              <div>
+                                <p className="text-base font-black text-slate-900 dark:text-white">
+                                  {new Date(override.date).toLocaleDateString([], { weekday: 'long' })}
+                                </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Icon name="clock" size={14} className="text-slate-400" />
+                                  <span className="text-sm font-bold text-slate-500">
+                                    {override.startTime} — {override.endTime}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteOverride(override.id)}
+                              className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-all opacity-0 group-hover:opacity-100"
+                            >
+                              <Icon name="trash" size={20} />
+                            </button>
                           </div>
-                          <button
-                            onClick={() => handleDeleteOverride(override.id)}
-                            className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-danger)] opacity-0 group-hover:opacity-100 transition-all"
-                          >
-                            <Icon name="trash" size={18} />
-                          </button>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
               </div>
-            </Card>
-          )}
+            </div>
+          </Card>
         </div>
 
-        <div className="space-y-6">
-          <Card className="rounded-3xl border-none shadow-sm ring-1 ring-[var(--color-border)] p-6 bg-[var(--color-surface)]">
-            <h3 className="font-bold text-[var(--color-text)] text-lg">Booked Overview</h3>
-            <p className="text-sm text-[var(--color-text-muted)] mt-1">See your upcoming confirmed visits</p>
+        <div className="space-y-8">
+          {/* Simplified Tips */}
+          <div className="rounded-[2.5rem] bg-indigo-50 dark:bg-indigo-900/10 p-8 border border-indigo-100 dark:border-indigo-900/30 shadow-sm">
+            <h4 className="text-lg font-black text-indigo-900 dark:text-indigo-300 mb-6 flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-white dark:bg-indigo-900/50 shadow-sm">
+                <Icon name="help" size={20} className="text-indigo-600 dark:text-indigo-400" />
+              </div>
+              How it works
+            </h4>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <p className="text-sm font-black text-indigo-900 dark:text-indigo-300">Absolute Transparency</p>
+                <p className="text-xs text-indigo-700/70 dark:text-indigo-400/70 leading-relaxed font-medium">
+                  We have disabled automatic slot generation. Only the dates and times you explicitly list here will be visible to patients.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-black text-indigo-900 dark:text-indigo-300">No "Ghost" Slots</p>
+                <p className="text-xs text-indigo-700/70 dark:text-indigo-400/70 leading-relaxed font-medium">
+                  Deleting an entry here removes it instantly from the booking page. This ensures you are never booked for a time you aren't actually working.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Card className="rounded-[2.5rem] border-none shadow-xl ring-1 ring-slate-200 dark:ring-slate-800 p-8 bg-[var(--color-surface)]">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="font-black text-slate-900 dark:text-white text-xl tracking-tight">Visit Ledger</h3>
+                <p className="text-sm text-slate-500 font-medium">Scheduled appointments.</p>
+              </div>
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/50 text-slate-400">
+                <Icon name="calendar" size={20} />
+              </div>
+            </div>
             
-            <div className="mt-6 space-y-4">
+            <div className="space-y-6">
               {loading ? (
-                <div className="py-12 flex flex-col items-center justify-center text-[var(--color-text-muted)]">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)] mb-4" />
-                  <p className="text-sm">Fetching your bookings...</p>
+                <div className="py-16 flex flex-col items-center justify-center text-slate-400">
+                  <div className="animate-spin rounded-full h-10 w-10 border-4 border-slate-100 border-t-primary mb-4" />
+                  <p className="text-xs font-black uppercase tracking-widest">Syncing Ledger...</p>
                 </div>
               ) : upcomingBookedDays.length === 0 ? (
-                <div className="py-12 text-center rounded-2xl border-2 border-dashed border-[var(--color-border)]">
-                  <Icon name="calendar" className="mx-auto w-10 h-10 text-[var(--color-text-muted)]/30 mb-3" />
-                  <p className="text-sm text-[var(--color-text-muted)] font-medium">No confirmed bookings yet</p>
+                <div className="py-16 text-center rounded-[2.5rem] border-2 border-dashed border-slate-100 dark:border-slate-800/50">
+                  <Icon name="calendar" className="mx-auto w-12 h-12 text-slate-200 dark:text-slate-800 mb-4" />
+                  <p className="text-sm text-slate-400 font-bold uppercase tracking-widest">Clear Ledger</p>
                 </div>
               ) : (
                 upcomingBookedDays.map((group) => (
-                  <div key={group.key} className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-px flex-1 bg-[var(--color-border)]" />
-                      <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{group.label}</span>
-                      <div className="h-px flex-1 bg-[var(--color-border)]" />
+                  <div key={group.key} className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">{group.label}</span>
+                      <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800/50" />
                     </div>
                     {group.bookings.map((booking: ProviderBooking) => (
-                      <div key={booking.id} className="p-4 rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-bold text-[var(--color-text)]">{booking.patientName}</p>
-                            <div className="flex items-center gap-1.5 mt-1">
-                              <Icon name="clock" size={12} className="text-[var(--color-text-muted)]" />
-                              <span className="text-xs font-medium text-[var(--color-text-muted)]">
-                                {booking.preferredTime}
-                              </span>
+                      <div key={booking.id} className="p-5 rounded-[1.5rem] bg-slate-50/50 dark:bg-slate-900/20 ring-1 ring-slate-100 dark:ring-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:shadow-xl hover:ring-primary/20 transition-all duration-300">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-sm">
+                              {booking.patientName?.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="text-base font-black text-slate-900 dark:text-white leading-none">{booking.patientName}</p>
+                              <div className="flex items-center gap-1.5 mt-2 text-slate-500">
+                                <Icon name="clock" size={12} />
+                                <span className="text-xs font-bold tracking-tight">
+                                  {booking.preferredTime}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                          <Badge variant={bookingStatusVariant[booking.status]}>
+                          <Badge variant={bookingStatusVariant[booking.status]} className="font-black uppercase text-[9px] tracking-widest px-3 py-1 rounded-full">
                             {booking.status}
                           </Badge>
                         </div>
@@ -550,23 +406,6 @@ export default function SchedulePage() {
               )}
             </div>
           </Card>
-
-          <div className="rounded-3xl bg-[var(--color-primary-soft)] p-6 border border-[var(--color-primary-soft-border)]">
-            <h4 className="text-sm font-bold text-[var(--color-primary)] mb-2 flex items-center gap-2">
-              <Icon name="help" size={16} />
-              Scheduling Tips
-            </h4>
-            <ul className="text-xs text-[var(--color-text)] space-y-3 opacity-80">
-              <li className="flex gap-2">
-                <span className="text-[var(--color-primary)] font-bold">•</span>
-                Use the <span className="font-bold underline decoration-2">Specific Dates</span> tab if you only want to be available on certain calendar dates.
-              </li>
-              <li className="flex gap-2">
-                <span className="text-[var(--color-primary)] font-bold">•</span>
-                Turn off all <span className="font-bold underline decoration-2">Weekly Patterns</span> to prevent the system from auto-generating slots every week.
-              </li>
-            </ul>
-          </div>
         </div>
       </div>
     </div>
