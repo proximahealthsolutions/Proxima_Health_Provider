@@ -159,11 +159,11 @@ export default function SchedulePage() {
       <div className="rounded-[2.5rem] bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#334155] p-10 text-white shadow-2xl overflow-hidden relative border border-slate-700/50">
         <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] font-bold uppercase tracking-wider mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] font-semibold uppercase tracking-wider mb-4">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               Manual Selection Mode
             </div>
-            <h1 className="text-4xl lg:text-5xl font-black tracking-tight leading-tight">
+            <h1 className="text-4xl lg:text-5xl font-bold tracking-tight leading-tight">
               Manage Your <span className="text-primary italic">Availability</span>
             </h1>
             <p className="mt-4 text-slate-300 text-lg leading-relaxed font-medium">
@@ -172,8 +172,8 @@ export default function SchedulePage() {
           </div>
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
             <div className="flex flex-col items-center bg-primary rounded-3xl p-6 shadow-lg shadow-primary/20 w-full sm:w-auto min-w-[160px]">
-              <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest mb-1 text-center">Active Dates</span>
-              <span className="text-4xl font-black text-white">{overrides.length}</span>
+              <span className="text-white/70 text-[10px] font-semibold uppercase tracking-widest mb-1 text-center">Active Dates</span>
+              <span className="text-4xl font-bold text-white">{overrides.length}</span>
             </div>
           </div>
         </div>
@@ -181,7 +181,7 @@ export default function SchedulePage() {
       </div>
 
       {flashMessage && (
-        <div className="animate-in fade-in slide-in-from-top-4 duration-500 rounded-[1.5rem] border border-[var(--color-success-soft-border)] bg-[var(--color-success-soft)] px-6 py-4 text-sm font-bold text-[var(--color-success)] flex items-center justify-between shadow-sm">
+        <div className="animate-in fade-in slide-in-from-top-4 duration-500 rounded-[1.5rem] border border-[var(--color-success-soft-border)] bg-[var(--color-success-soft)] px-6 py-4 text-sm font-semibold text-[var(--color-success)] flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3">
             <div className="p-1.5 rounded-full bg-[var(--color-success)] text-white">
               <Icon name="check" className="w-3.5 h-3.5" />
@@ -201,7 +201,7 @@ export default function SchedulePage() {
             <div className="p-8 space-y-10 animate-in fade-in duration-500">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-slate-100 dark:border-slate-800">
                 <div className="space-y-1">
-                  <h3 className="text-2xl font-black text-slate-900 dark:text-white">Individual Date Selection</h3>
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Individual Date Selection</h3>
                   <p className="text-[var(--color-text-muted)] font-medium">Select specific calendar days to open for appointments.</p>
                 </div>
               </div>
@@ -210,47 +210,48 @@ export default function SchedulePage() {
                 {/* Add Form */}
                 <div className="space-y-6">
                   <div className="bg-slate-50 dark:bg-slate-900/50 p-8 rounded-[2rem] ring-1 ring-slate-200 dark:ring-slate-800 space-y-6 shadow-sm">
-                    <div className="inline-flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest mb-2">
+                    <div className="inline-flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest mb-2">
                       <Icon name="plus" size={16} />
                       Publish Availability
                     </div>
                     
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Calendar Date</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Calendar Date</label>
                       <input
                         type="date"
                         value={newOverrideDate}
                         onChange={(e) => setNewOverrideDate(e.target.value)}
                         min={new Date().toISOString().split("T")[0]}
-                        className="w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-2xl text-base font-bold p-4 focus:ring-4 focus:ring-primary/20 text-slate-900 dark:text-white shadow-sm transition-all"
+                        className="w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-2xl text-base font-semibold p-4 focus:ring-4 focus:ring-primary/20 text-slate-900 dark:text-white shadow-sm transition-all"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Starts At</label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Starts At</label>
                         <input
                           type="time"
                           value={newOverrideStart}
                           onChange={(e) => setNewOverrideStart(e.target.value)}
-                          className="w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-2xl text-base font-bold p-4 focus:ring-4 focus:ring-primary/20 text-slate-900 dark:text-white shadow-sm transition-all"
+                          className="w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-2xl text-base font-semibold p-4 focus:ring-4 focus:ring-primary/20 text-slate-900 dark:text-white shadow-sm transition-all"
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Ends At</label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Ends At</label>
                         <input
                           type="time"
                           value={newOverrideEnd}
                           onChange={(e) => setNewOverrideEnd(e.target.value)}
-                          className="w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-2xl text-base font-bold p-4 focus:ring-4 focus:ring-primary/20 text-slate-900 dark:text-white shadow-sm transition-all"
+                          className="w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-2xl text-base font-semibold p-4 focus:ring-4 focus:ring-primary/20 text-slate-900 dark:text-white shadow-sm transition-all"
                         />
                       </div>
                     </div>
 
                     <Button
+                      variant="primary"
                       onClick={handleAddOverride}
                       disabled={isAddingOverride || !newOverrideDate}
-                      className="w-full rounded-2xl py-4 font-black uppercase tracking-widest shadow-xl shadow-primary/20 bg-primary text-white hover:scale-[1.02] active:scale-95 transition-all"
+                      className="w-full rounded-2xl py-6 font-bold uppercase tracking-widest shadow-xl shadow-primary/20"
                     >
                       {isAddingOverride ? "Publishing..." : "Add to Schedule"}
                     </Button>
@@ -260,7 +261,7 @@ export default function SchedulePage() {
                 {/* List */}
                 <div className="space-y-6">
                   <div className="flex items-center justify-between px-2">
-                    <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Your Active Slots</h4>
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Your Active Slots</h4>
                     <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{overrides.length} Total</span>
                   </div>
 
@@ -278,17 +279,17 @@ export default function SchedulePage() {
                         <div key={override.id} className="group relative p-5 rounded-[1.5rem] bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 hover:ring-primary/50 hover:shadow-lg transition-all duration-300">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                              <div className="flex flex-col items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 text-primary font-black">
+                              <div className="flex flex-col items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 text-primary font-bold">
                                 <span className="text-[10px] uppercase">{new Date(override.date).toLocaleDateString([], { month: 'short' })}</span>
                                 <span className="text-lg leading-none">{new Date(override.date).getDate()}</span>
                               </div>
                               <div>
-                                <p className="text-base font-black text-slate-900 dark:text-white">
+                                <p className="text-base font-bold text-slate-900 dark:text-white">
                                   {new Date(override.date).toLocaleDateString([], { weekday: 'long' })}
                                 </p>
                                 <div className="flex items-center gap-2 mt-1">
                                   <Icon name="clock" size={14} className="text-slate-400" />
-                                  <span className="text-sm font-bold text-slate-500">
+                                  <span className="text-sm font-semibold text-slate-500">
                                     {override.startTime} — {override.endTime}
                                   </span>
                                 </div>
@@ -314,7 +315,7 @@ export default function SchedulePage() {
         <div className="space-y-8">
           {/* Simplified Tips */}
           <div className="rounded-[2.5rem] bg-indigo-50 dark:bg-indigo-900/10 p-8 border border-indigo-100 dark:border-indigo-900/30 shadow-sm">
-            <h4 className="text-lg font-black text-indigo-900 dark:text-indigo-300 mb-6 flex items-center gap-3">
+            <h4 className="text-lg font-bold text-indigo-900 dark:text-indigo-300 mb-6 flex items-center gap-3">
               <div className="p-2 rounded-xl bg-white dark:bg-indigo-900/50 shadow-sm">
                 <Icon name="help" size={20} className="text-indigo-600 dark:text-indigo-400" />
               </div>
@@ -322,13 +323,13 @@ export default function SchedulePage() {
             </h4>
             <div className="space-y-6">
               <div className="space-y-2">
-                <p className="text-sm font-black text-indigo-900 dark:text-indigo-300">Absolute Transparency</p>
+                <p className="text-sm font-bold text-indigo-900 dark:text-indigo-300">Absolute Transparency</p>
                 <p className="text-xs text-indigo-700/70 dark:text-indigo-400/70 leading-relaxed font-medium">
                   We have disabled automatic slot generation. Only the dates and times you explicitly list here will be visible to patients.
                 </p>
               </div>
               <div className="space-y-2">
-                <p className="text-sm font-black text-indigo-900 dark:text-indigo-300">No "Ghost" Slots</p>
+                <p className="text-sm font-bold text-indigo-900 dark:text-indigo-300">No "Ghost" Slots</p>
                 <p className="text-xs text-indigo-700/70 dark:text-indigo-400/70 leading-relaxed font-medium">
                   Deleting an entry here removes it instantly from the booking page. This ensures you are never booked for a time you aren't actually working.
                 </p>
@@ -339,7 +340,7 @@ export default function SchedulePage() {
           <Card className="rounded-[2.5rem] border-none shadow-xl ring-1 ring-slate-200 dark:ring-slate-800 p-8 bg-[var(--color-surface)]">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h3 className="font-black text-slate-900 dark:text-white text-xl tracking-tight">Visit Ledger</h3>
+                <h3 className="font-bold text-slate-900 dark:text-white text-xl tracking-tight">Visit Ledger</h3>
                 <p className="text-sm text-slate-500 font-medium">Scheduled appointments.</p>
               </div>
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/50 text-slate-400">
@@ -351,7 +352,7 @@ export default function SchedulePage() {
               {loading ? (
                 <div className="py-16 flex flex-col items-center justify-center text-slate-400">
                   <div className="animate-spin rounded-full h-10 w-10 border-4 border-slate-100 border-t-primary mb-4" />
-                  <p className="text-xs font-black uppercase tracking-widest">Syncing Ledger...</p>
+                  <p className="text-xs font-bold uppercase tracking-widest">Syncing Ledger...</p>
                 </div>
               ) : upcomingBookedDays.length === 0 ? (
                 <div className="py-16 text-center rounded-[2.5rem] border-2 border-dashed border-slate-100 dark:border-slate-800/50">
@@ -362,27 +363,27 @@ export default function SchedulePage() {
                 upcomingBookedDays.map((group) => (
                   <div key={group.key} className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">{group.label}</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">{group.label}</span>
                       <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800/50" />
                     </div>
                     {group.bookings.map((booking: ProviderBooking) => (
                       <div key={booking.id} className="p-5 rounded-[1.5rem] bg-slate-50/50 dark:bg-slate-900/20 ring-1 ring-slate-100 dark:ring-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:shadow-xl hover:ring-primary/20 transition-all duration-300">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-sm">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
                               {booking.patientName?.charAt(0)}
                             </div>
                             <div>
-                              <p className="text-base font-black text-slate-900 dark:text-white leading-none">{booking.patientName}</p>
+                              <p className="text-base font-bold text-slate-900 dark:text-white leading-none">{booking.patientName}</p>
                               <div className="flex items-center gap-1.5 mt-2 text-slate-500">
                                 <Icon name="clock" size={12} />
-                                <span className="text-xs font-bold tracking-tight">
+                                <span className="text-xs font-semibold tracking-tight">
                                   {booking.preferredTime}
                                 </span>
                               </div>
                             </div>
                           </div>
-                          <Badge variant={bookingStatusVariant[booking.status]} className="font-black uppercase text-[9px] tracking-widest px-3 py-1 rounded-full">
+                          <Badge variant={bookingStatusVariant[booking.status]} className="font-bold uppercase text-[9px] tracking-widest px-3 py-1 rounded-full">
                             {booking.status}
                           </Badge>
                         </div>
