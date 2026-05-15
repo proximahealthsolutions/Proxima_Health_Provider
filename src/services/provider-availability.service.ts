@@ -92,3 +92,9 @@ export async function createAvailabilityOverride(payload: {
     body: JSON.stringify(payload),
   });
 }
+
+export async function deleteAvailabilityOverride(id: string): Promise<void> {
+  await fetchApi(`/providers/schedule/overrides/${id}`, {
+    method: "DELETE",
+  });
+}

@@ -12,6 +12,10 @@ import {
   getWeeklyAvailability,
   saveWeeklyAvailability,
   WeeklyAvailabilityDay,
+  getAvailabilityOverrides,
+  createAvailabilityOverride,
+  deleteAvailabilityOverride,
+  AvailabilityOverride,
 } from "@/services/provider-availability.service";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -55,23 +59,33 @@ function buildEmptySchedule(): WeeklyAvailabilityDay[] {
 export default function SchedulePage() {
   const [bookings, setBookings] = useState<ProviderBooking[]>([]);
   const [weeklySchedule, setWeeklySchedule] = useState<WeeklyAvailabilityDay[]>(buildEmptySchedule());
+  const [overrides, setOverrides] = useState<AvailabilityOverride[]>([]);
   const [timezone, setTimezone] = useState("UTC");
   const [loading, setLoading] = useState(true);
   const [savingWeekly, setSavingWeekly] = useState(false);
+  const [activeTab, setActiveTab] = useState<"weekly" | "specific">("weekly");
   const [flashMessage, setFlashMessage] = useState("");
+
+  // New Override State
+  const [newOverrideDate, setNewOverrideDate] = useState("");
+  const [newOverrideStart, setNewOverrideStart] = useState("09:00");
+  const [newOverrideEnd, setNewOverrideEnd] = useState("10:00");
+  const [isAddingOverride, setIsAddingOverride] = useState(false);
 
   useEffect(() => {
     let mounted = true;
 
     (async () => {
       try {
-        const [bookingData, weeklyData] = await Promise.all([
+        const [bookingData, weeklyData, overrideData] = await Promise.all([
           getProviderBookings(),
           getWeeklyAvailability(),
+          getAvailabilityOverrides(),
         ]);
         if (!mounted) return;
 
         setBookings(sortByStartAt(bookingData));
+        setOverrides(overrideData || []);
         if (weeklyData && weeklyData.days) {
           setWeeklySchedule(weeklyData.days);
           setTimezone(weeklyData.timezone || "UTC");
@@ -214,6 +228,36 @@ export default function SchedulePage() {
     }
   }
 
+  async function handleAddOverride() {
+    if (!newOverrideDate) return;
+    setIsAddingOverride(true);
+    try {
+      const resp = await createAvailabilityOverride({
+        date: newOverrideDate,
+        startTime: newOverrideStart,
+        endTime: newOverrideEnd,
+        isAvailable: true,
+      });
+      setOverrides((prev) => [...prev, resp].sort((a, b) => a.date.localeCompare(b.date)));
+      setNewOverrideDate("");
+      showFlash("Specific date availability added.");
+    } catch (err: any) {
+      showFlash(err?.message || "Failed to add availability.");
+    } finally {
+      setIsAddingOverride(false);
+    }
+  }
+
+  async function handleDeleteOverride(id: string) {
+    try {
+      await deleteAvailabilityOverride(id);
+      setOverrides((prev) => prev.filter((o) => o.id !== id));
+      showFlash("Availability removed.");
+    } catch (err: any) {
+      showFlash(err?.message || "Failed to remove availability.");
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6 p-4 lg:p-8 max-w-7xl mx-auto">
       {/* Header Section */}
@@ -223,15 +267,15 @@ export default function SchedulePage() {
             <div>
               <h1 className="text-3xl font-extrabold tracking-tight">Availability Center</h1>
               <p className="mt-2 text-slate-300 max-w-md">
-                Customize your weekly schedule with precision. Add specific time slots and manage your timezone.
+                Customize your schedule with precision. Choose between a recurring weekly pattern or specific dates.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Badge className="bg-emerald-500/10 border-emerald-500/20 text-emerald-400 py-1.5 px-4 rounded-full">
-                {activeDaysCount} Days Active
+                {activeDaysCount} Weekly Days
               </Badge>
               <Badge className="bg-blue-500/10 border-blue-500/20 text-blue-400 py-1.5 px-4 rounded-full">
-                {stats.requested} Pending Requests
+                {overrides.length} Specific Dates
               </Badge>
             </div>
           </div>
@@ -248,103 +292,215 @@ export default function SchedulePage() {
 
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.5fr_1fr]">
         <div className="space-y-6">
-          <Card className="rounded-3xl border-none shadow-sm ring-1 ring-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
-            <div className="p-6 border-b border-[var(--color-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-bold text-[var(--color-text)]">Weekly Slots</h3>
-                <p className="text-sm text-[var(--color-text-muted)]">Configure your daily working hours</p>
-              </div>
-              <div className="flex items-center gap-3 bg-[var(--color-surface-soft)] p-1.5 rounded-2xl ring-1 ring-[var(--color-border)]">
-                <span className="text-xs font-semibold text-[var(--color-text-muted)] ml-2">Timezone</span>
-                <select
-                  value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
-                  className="bg-[var(--color-surface)] border-none rounded-xl text-sm font-medium py-1.5 px-3 focus:ring-2 focus:ring-[var(--color-primary)] shadow-sm text-[var(--color-text)]"
-                >
-                  {COMMON_TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
-                </select>
-              </div>
-            </div>
+          {/* Tabs */}
+          <div className="flex p-1 bg-[var(--color-surface-soft)] rounded-2xl w-fit ring-1 ring-[var(--color-border)]">
+            <button
+              onClick={() => setActiveTab("weekly")}
+              className={cn(
+                "px-6 py-2 rounded-xl text-sm font-bold transition-all",
+                activeTab === "weekly" ? "bg-[var(--color-surface)] text-[var(--color-primary)] shadow-sm" : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+              )}
+            >
+              Weekly Pattern
+            </button>
+            <button
+              onClick={() => setActiveTab("specific")}
+              className={cn(
+                "px-6 py-2 rounded-xl text-sm font-bold transition-all",
+                activeTab === "specific" ? "bg-[var(--color-surface)] text-[var(--color-primary)] shadow-sm" : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+              )}
+            >
+              Specific Dates
+            </button>
+          </div>
 
-            <div className="divide-y divide-[var(--color-border)]">
-              {weeklySchedule.map((day) => (
-                <div key={day.weekday} className={cn("p-6 transition-colors", day.enabled ? "bg-[var(--color-surface)]" : "bg-[var(--color-surface-soft)]/50")}>
-                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-                    <div className="flex items-center gap-4 min-w-[140px]">
-                      <button
-                        onClick={() => handleToggleDay(day.weekday)}
-                        className={cn(
-                          "relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300",
-                          day.enabled ? "bg-[var(--color-primary)]" : "bg-slate-300 dark:bg-slate-700"
-                        )}
-                      >
-                        <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300", day.enabled ? "translate-x-6" : "translate-x-1")} />
-                      </button>
-                      <span className={cn("font-bold text-base", day.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")}>
-                        {WEEKDAYS[day.weekday]}
-                      </span>
-                    </div>
+          {activeTab === "weekly" ? (
+            <Card className="rounded-3xl border-none shadow-sm ring-1 ring-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
+              <div className="p-6 border-b border-[var(--color-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-[var(--color-text)]">Recurring Schedule</h3>
+                  <p className="text-sm text-[var(--color-text-muted)]">Availability that repeats every week</p>
+                </div>
+                <div className="flex items-center gap-3 bg-[var(--color-surface-soft)] p-1.5 rounded-2xl ring-1 ring-[var(--color-border)]">
+                  <span className="text-xs font-semibold text-[var(--color-text-muted)] ml-2">Timezone</span>
+                  <select
+                    value={timezone}
+                    onChange={(e) => setTimezone(e.target.value)}
+                    className="bg-[var(--color-surface)] border-none rounded-xl text-sm font-medium py-1.5 px-3 focus:ring-2 focus:ring-[var(--color-primary)] shadow-sm text-[var(--color-text)]"
+                  >
+                    {COMMON_TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
+                  </select>
+                </div>
+              </div>
 
-                    <div className="flex-1 space-y-3">
-                      {day.enabled ? (
-                        <>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {day.slots.map((slot, idx) => (
-                              <div key={idx} className="flex items-center gap-2 group animate-in fade-in zoom-in-95 duration-200">
-                                <div className="flex flex-1 items-center gap-2 bg-[var(--color-surface-soft)] rounded-2xl p-2 ring-1 ring-[var(--color-border)] focus-within:ring-2 focus-within:ring-[var(--color-primary)] transition-all">
-                                  <input
-                                    type="time"
-                                    value={slot.startTime}
-                                    onChange={(e) => handleUpdateSlot(day.weekday, idx, "startTime", e.target.value)}
-                                    className="bg-transparent border-none text-sm font-medium w-full focus:ring-0 p-1 text-[var(--color-text)]"
-                                  />
-                                  <span className="text-[var(--color-text-muted)] text-xs">—</span>
-                                  <input
-                                    type="time"
-                                    value={slot.endTime}
-                                    onChange={(e) => handleUpdateSlot(day.weekday, idx, "endTime", e.target.value)}
-                                    className="bg-transparent border-none text-sm font-medium w-full focus:ring-0 p-1 text-[var(--color-text)]"
-                                  />
+              <div className="divide-y divide-[var(--color-border)]">
+                {weeklySchedule.map((day) => (
+                  <div key={day.weekday} className={cn("p-6 transition-colors", day.enabled ? "bg-[var(--color-surface)]" : "bg-[var(--color-surface-soft)]/50")}>
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                      <div className="flex items-center gap-4 min-w-[140px]">
+                        <button
+                          onClick={() => handleToggleDay(day.weekday)}
+                          className={cn(
+                            "relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300",
+                            day.enabled ? "bg-[var(--color-primary)]" : "bg-slate-300 dark:bg-slate-700"
+                          )}
+                        >
+                          <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300", day.enabled ? "translate-x-6" : "translate-x-1")} />
+                        </button>
+                        <span className={cn("font-bold text-base", day.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")}>
+                          {WEEKDAYS[day.weekday]}
+                        </span>
+                      </div>
+
+                      <div className="flex-1 space-y-3">
+                        {day.enabled ? (
+                          <>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {day.slots.map((slot, idx) => (
+                                <div key={idx} className="flex items-center gap-2 group animate-in fade-in zoom-in-95 duration-200">
+                                  <div className="flex flex-1 items-center gap-2 bg-[var(--color-surface-soft)] rounded-2xl p-2 ring-1 ring-[var(--color-border)] focus-within:ring-2 focus-within:ring-[var(--color-primary)] transition-all">
+                                    <input
+                                      type="time"
+                                      value={slot.startTime}
+                                      onChange={(e) => handleUpdateSlot(day.weekday, idx, "startTime", e.target.value)}
+                                      className="bg-transparent border-none text-sm font-medium w-full focus:ring-0 p-1 text-[var(--color-text)]"
+                                    />
+                                    <span className="text-[var(--color-text-muted)] text-xs">—</span>
+                                    <input
+                                      type="time"
+                                      value={slot.endTime}
+                                      onChange={(e) => handleUpdateSlot(day.weekday, idx, "endTime", e.target.value)}
+                                      className="bg-transparent border-none text-sm font-medium w-full focus:ring-0 p-1 text-[var(--color-text)]"
+                                    />
+                                  </div>
+                                  <button
+                                    onClick={() => handleRemoveSlot(day.weekday, idx)}
+                                    className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-soft)] rounded-xl transition-colors"
+                                  >
+                                    <Icon name="trash" size={18} />
+                                  </button>
                                 </div>
-                                <button
-                                  onClick={() => handleRemoveSlot(day.weekday, idx)}
-                                  className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-soft)] rounded-xl transition-colors"
-                                >
-                                  <Icon name="trash" size={18} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                          <button
-                            onClick={() => handleAddSlot(day.weekday)}
-                            className="text-xs font-bold text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] flex items-center gap-1.5 py-2 px-3 rounded-xl hover:bg-[var(--color-primary-soft)] transition-colors"
-                          >
-                            <Icon name="plus" size={14} />
-                            Add time slot
-                          </button>
-                        </>
-                      ) : (
-                        <p className="text-sm text-[var(--color-text-muted)] italic py-2">Unavailable for bookings</p>
-                      )}
+                              ))}
+                            </div>
+                            <button
+                              onClick={() => handleAddSlot(day.weekday)}
+                              className="text-xs font-bold text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] flex items-center gap-1.5 py-2 px-3 rounded-xl hover:bg-[var(--color-primary-soft)] transition-colors"
+                            >
+                              <Icon name="plus" size={14} />
+                              Add time slot
+                            </button>
+                          </>
+                        ) : (
+                          <p className="text-sm text-[var(--color-text-muted)] italic py-2">No weekly slots</p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            <div className="p-6 bg-[var(--color-surface-soft)] border-t border-[var(--color-border)] flex items-center justify-between">
-              <p className="text-xs text-[var(--color-text-muted)] max-w-sm">
-                Slots will be visible to patients for booking. Ensure you allow enough buffer time between appointments.
-              </p>
-              <Button
-                onClick={handleSave}
-                disabled={savingWeekly}
-                className="rounded-2xl px-8 shadow-lg bg-[var(--color-primary)] text-[var(--color-on-primary)]"
-              >
-                {savingWeekly ? "Saving changes..." : "Save Schedule"}
-              </Button>
-            </div>
-          </Card>
+              <div className="p-6 bg-[var(--color-surface-soft)] border-t border-[var(--color-border)] flex items-center justify-between">
+                <p className="text-xs text-[var(--color-text-muted)] max-w-sm">
+                  These slots will repeat every week. Turn them all off if you only want to use date-specific availability.
+                </p>
+                <Button
+                  onClick={handleSave}
+                  disabled={savingWeekly}
+                  className="rounded-2xl px-8 shadow-lg bg-[var(--color-primary)] text-[var(--color-on-primary)]"
+                >
+                  {savingWeekly ? "Saving changes..." : "Save Weekly Schedule"}
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <Card className="rounded-3xl border-none shadow-sm ring-1 ring-[var(--color-border)] overflow-hidden bg-[var(--color-surface)] p-6">
+              <div className="mb-8">
+                <h3 className="text-lg font-bold text-[var(--color-text)]">Date-Specific Availability</h3>
+                <p className="text-sm text-[var(--color-text-muted)]">Add slots for specific calendar dates (doesn't repeat)</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <div className="bg-[var(--color-surface-soft)] p-6 rounded-3xl ring-1 ring-[var(--color-border)] space-y-4">
+                    <h4 className="text-sm font-bold text-[var(--color-text)]">Add New Availability</h4>
+                    
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase ml-1">Select Date</label>
+                      <input
+                        type="date"
+                        value={newOverrideDate}
+                        onChange={(e) => setNewOverrideDate(e.target.value)}
+                        min={new Date().toISOString().split("T")[0]}
+                        className="w-full bg-[var(--color-surface)] border-[var(--color-border)] rounded-2xl text-sm font-medium p-3 focus:ring-2 focus:ring-[var(--color-primary)] text-[var(--color-text)] shadow-sm"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase ml-1">Start Time</label>
+                        <input
+                          type="time"
+                          value={newOverrideStart}
+                          onChange={(e) => setNewOverrideStart(e.target.value)}
+                          className="w-full bg-[var(--color-surface)] border-[var(--color-border)] rounded-2xl text-sm font-medium p-3 focus:ring-2 focus:ring-[var(--color-primary)] text-[var(--color-text)] shadow-sm"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase ml-1">End Time</label>
+                        <input
+                          type="time"
+                          value={newOverrideEnd}
+                          onChange={(e) => setNewOverrideEnd(e.target.value)}
+                          className="w-full bg-[var(--color-surface)] border-[var(--color-border)] rounded-2xl text-sm font-medium p-3 focus:ring-2 focus:ring-[var(--color-primary)] text-[var(--color-text)] shadow-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={handleAddOverride}
+                      disabled={isAddingOverride || !newOverrideDate}
+                      className="w-full rounded-2xl py-3 shadow-md bg-[var(--color-primary)] text-[var(--color-on-primary)] mt-2"
+                    >
+                      {isAddingOverride ? "Adding..." : "Add Availability"}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-bold text-[var(--color-text)] flex items-center gap-2">
+                    <Icon name="calendar" size={16} />
+                    Current Specific Slots
+                  </h4>
+                  {overrides.length === 0 ? (
+                    <div className="py-12 text-center rounded-3xl border-2 border-dashed border-[var(--color-border)]">
+                      <p className="text-sm text-[var(--color-text-muted)]">No specific dates added yet.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                      {overrides.map((override) => (
+                        <div key={override.id} className="p-4 rounded-2xl bg-[var(--color-surface-soft)]/50 ring-1 ring-[var(--color-border)] flex items-center justify-between group hover:bg-[var(--color-surface-soft)] transition-colors">
+                          <div>
+                            <p className="text-sm font-bold text-[var(--color-text)]">
+                              {new Date(override.date).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric", weekday: "short" })}
+                            </p>
+                            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                              {override.startTime} — {override.endTime}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteOverride(override.id)}
+                            className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-danger)] opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <Icon name="trash" size={18} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -403,11 +559,11 @@ export default function SchedulePage() {
             <ul className="text-xs text-[var(--color-text)] space-y-3 opacity-80">
               <li className="flex gap-2">
                 <span className="text-[var(--color-primary)] font-bold">•</span>
-                Use the multi-slot feature to set breaks or split shifts during the day.
+                Use the <span className="font-bold underline decoration-2">Specific Dates</span> tab if you only want to be available on certain calendar dates.
               </li>
               <li className="flex gap-2">
                 <span className="text-[var(--color-primary)] font-bold">•</span>
-                Double check your timezone to ensure patients see the correct local times.
+                Turn off all <span className="font-bold underline decoration-2">Weekly Patterns</span> to prevent the system from auto-generating slots every week.
               </li>
             </ul>
           </div>
