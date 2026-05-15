@@ -9,16 +9,12 @@ import { cn } from "@/lib/utils";
 import { bookingStatusVariant, ProviderBooking, BookingStatus } from "@/types";
 import { getProviderBookings } from "@/services/provider-bookings.service";
 import {
-  getWeeklyAvailability,
-  saveWeeklyAvailability,
-  WeeklyAvailabilityDay,
   getAvailabilityOverrides,
   createAvailabilityOverride,
   deleteAvailabilityOverride,
   AvailabilityOverride,
 } from "@/services/provider-availability.service";
 
-const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const BOOKED_DAY_STATUSES = new Set(["requested", "accepted", "in_progress", "ended"]);
 
 const COMMON_TIMEZONES = [
@@ -48,17 +44,8 @@ function sortByStartAt(items: ProviderBooking[]) {
   });
 }
 
-function buildEmptySchedule(): WeeklyAvailabilityDay[] {
-  return Array.from({ length: 7 }, (_, weekday) => ({
-    weekday,
-    enabled: false,
-    slots: [],
-  }));
-}
-
 export default function SchedulePage() {
   const [bookings, setBookings] = useState<ProviderBooking[]>([]);
-  const [weeklySchedule, setWeeklySchedule] = useState<WeeklyAvailabilityDay[]>(buildEmptySchedule());
   const [overrides, setOverrides] = useState<AvailabilityOverride[]>([]);
   const [loading, setLoading] = useState(true);
   const [flashMessage, setFlashMessage] = useState("");
