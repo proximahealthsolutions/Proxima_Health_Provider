@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { bookingStatusVariant, ProviderBooking, BookingStatus } from "@/types";
 import { getProviderBookings } from "@/services/provider-bookings.service";
 import {
+  getWeeklyAvailability,
+  saveWeeklyAvailability,
   getAvailabilityOverrides,
   createAvailabilityOverride,
   deleteAvailabilityOverride,
