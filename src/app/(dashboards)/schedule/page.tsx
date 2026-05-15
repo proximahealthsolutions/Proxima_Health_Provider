@@ -47,7 +47,9 @@ function sortByStartAt(items: ProviderBooking[]) {
 export default function SchedulePage() {
   const [bookings, setBookings] = useState<ProviderBooking[]>([]);
   const [overrides, setOverrides] = useState<AvailabilityOverride[]>([]);
+  const [timezone, setTimezone] = useState("Africa/Lagos");
   const [loading, setLoading] = useState(true);
+  const [savingTimezone, setSavingTimezone] = useState(false);
   const [flashMessage, setFlashMessage] = useState("");
 
   // Override State
@@ -61,14 +63,18 @@ export default function SchedulePage() {
 
     (async () => {
       try {
-        const [bookingData, overrideData] = await Promise.all([
+        const [bookingData, overrideData, weeklyData] = await Promise.all([
           getProviderBookings(),
           getAvailabilityOverrides(),
+          getWeeklyAvailability(),
         ]);
         if (!mounted) return;
 
         setBookings(sortByStartAt(bookingData));
         setOverrides(overrideData || []);
+        if (weeklyData?.timezone) {
+          setTimezone(weeklyData.timezone);
+        }
       } catch {
         if (!mounted) return;
         setBookings([]);
@@ -86,6 +92,22 @@ export default function SchedulePage() {
   function showFlash(message: string) {
     setFlashMessage(message);
     window.setTimeout(() => setFlashMessage(""), 3000);
+  }
+
+  async function handleSaveTimezone(newTz: string) {
+    setTimezone(newTz);
+    setSavingTimezone(true);
+    try {
+      await saveWeeklyAvailability({
+        timezone: newTz,
+        days: [], // We don't use weekly rules, but the endpoint requires them
+      });
+      showFlash("Schedule timezone updated.");
+    } catch (err: any) {
+      showFlash(err?.message || "Failed to update timezone.");
+    } finally {
+      setSavingTimezone(false);
+    }
   }
 
   const bookedDayGroups = useMemo(() => {
@@ -171,6 +193,20 @@ export default function SchedulePage() {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <div className="flex flex-col items-center bg-white/5 backdrop-blur-md rounded-3xl p-4 border border-white/10 w-full sm:w-auto min-w-[200px]">
+              <div className="flex items-center gap-2 mb-2">
+                <Icon name="clock" size={14} className="text-slate-400" />
+                <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-widest">Schedule Timezone</span>
+              </div>
+              <select
+                value={timezone}
+                disabled={savingTimezone}
+                onChange={(e) => handleSaveTimezone(e.target.value)}
+                className="bg-transparent border-none text-sm font-bold text-white focus:ring-0 p-0 cursor-pointer hover:text-primary transition-colors"
+              >
+                {COMMON_TIMEZONES.map(tz => <option key={tz} value={tz} className="bg-[#1e293b] text-white">{tz}</option>)}
+              </select>
+            </div>
             <div className="flex flex-col items-center bg-primary rounded-3xl p-6 shadow-lg shadow-primary/20 w-full sm:w-auto min-w-[160px]">
               <span className="text-white/70 text-[10px] font-semibold uppercase tracking-widest mb-1 text-center">Active Dates</span>
               <span className="text-4xl font-bold text-white">{overrides.length}</span>
