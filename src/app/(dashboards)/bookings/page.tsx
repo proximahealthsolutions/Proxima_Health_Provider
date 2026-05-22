@@ -4,12 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import Badge from "@/components/shared/Badge";
 import Button from "@/components/shared/Button";
 import Card, { CardHeader } from "@/components/shared/Card";
+import RightDrawer from "@/components/shared/RightDrawer";
 import { useProviderUi } from "@/components/provider/ProviderUiContext";
 import { cn } from "@/lib/utils";
 import {
   bookingStatusVariant,
   careActionLabel,
   CareActionKey,
+  PatientRow,
   ProviderBooking,
 } from "@/types";
 import {
@@ -48,13 +50,40 @@ function requiresCompletedPayment(booking: ProviderBooking) {
   return (booking.paymentAmount ?? 0) > 0 && booking.paymentStatus !== "PAID";
 }
 
+function toPatientWorkspaceRow(booking: ProviderBooking): PatientRow {
+  const name = patientName(booking);
+  const initials = name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+
+  return {
+    id: booking.patientId,
+    init: initials || "PT",
+    color: "teal",
+    name,
+    age: booking.age || null,
+    gender: booking.gender || "—",
+    condition: booking.condition || "General Consultation",
+    lastVisit: "—",
+    nextVisit: formatSlot(booking),
+    status: booking.status === "accepted" || booking.status === "in_progress" ? "Active" : "Inactive",
+    risk: "Low",
+    email: booking.patientEmail || "",
+    phone: booking.patientPhone || "",
+  };
+}
+
 export default function ProviderBookingsPage() {
   const [bookings, setBookings] = useState<ProviderBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyBookingId, setBusyBookingId] = useState<string | null>(null);
   const [flashMessage, setFlashMessage] = useState("");
   const [view, setView] = useState<BookingView>("bookings");
-  const { openChat } = useProviderUi();
+  const [reviewBooking, setReviewBooking] = useState<ProviderBooking | null>(null);
+  const { openChat, openPatientWorkspace } = useProviderUi();
 
   useEffect(() => {
     let mounted = true;
@@ -127,6 +156,18 @@ export default function ProviderBookingsPage() {
       );
     } finally {
       setBusyBookingId(null);
+    }
+  }
+
+  async function handleWorkspaceDecision(decision: "accepted" | "rejected") {
+    if (!reviewBooking) return;
+
+    const currentBooking = reviewBooking;
+    await handleDecision(currentBooking.id, decision);
+    setReviewBooking(null);
+
+    if (decision === "accepted") {
+      openPatientWorkspace(toPatientWorkspaceRow(currentBooking), "patient-overview");
     }
   }
 
@@ -209,6 +250,14 @@ export default function ProviderBookingsPage() {
         <>
           <Button
             size="sm"
+            variant="outline"
+            disabled={busyBookingId === booking.id}
+            onClick={() => setReviewBooking(booking)}
+          >
+            Workspace
+          </Button>
+          <Button
+            size="sm"
             disabled={busyBookingId === booking.id}
             className="bg-[var(--color-success)] hover:bg-[var(--color-success-hover)] text-[var(--color-on-primary)]"
             onClick={() => handleDecision(booking.id, "accepted")}
@@ -237,6 +286,13 @@ export default function ProviderBookingsPage() {
       }
       return (
         <>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => openPatientWorkspace(toPatientWorkspaceRow(booking), "patient-overview")}
+          >
+            Workspace
+          </Button>
           <Button
             size="sm"
             disabled={busyBookingId === booking.id}
@@ -462,6 +518,15 @@ export default function ProviderBookingsPage() {
                   <Badge variant={bookingStatusVariant[booking.status]}>{booking.status}</Badge>
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {booking.status === "accepted" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openPatientWorkspace(toPatientWorkspaceRow(booking), "patient-overview")}
+                    >
+                      Open Workspace
+                    </Button>
+                  )}
                   {(Object.keys(booking.careActions) as CareActionKey[]).map((action) => (
                     <Button
                       key={action}
@@ -484,6 +549,76 @@ export default function ProviderBookingsPage() {
           </div>
         </Card>
       )}
+
+      <RightDrawer
+        open={Boolean(reviewBooking)}
+        onClose={() => setReviewBooking(null)}
+        title={reviewBooking ? `Review ${patientName(reviewBooking)}` : "Review Booking"}
+        subtitle={reviewBooking ? "Accept this booking before opening the patient workspace." : undefined}
+        footer={
+          reviewBooking ? (
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                variant="outline"
+                disabled={busyBookingId === reviewBooking.id}
+                onClick={() => handleWorkspaceDecision("rejected")}
+              >
+                Reject
+              </Button>
+              <Button
+                className="bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:bg-[var(--color-primary-hover)]"
+                disabled={busyBookingId === reviewBooking.id}
+                onClick={() => handleWorkspaceDecision("accepted")}
+              >
+                Accept and Open Workspace
+              </Button>
+            </div>
+          ) : null
+        }
+      >
+        {reviewBooking ? (
+          <div className="space-y-5">
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-base font-semibold text-[var(--color-text)]">
+                    {patientName(reviewBooking)}
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+                    {reviewBooking.reason}
+                  </p>
+                </div>
+                <Badge variant={bookingStatusVariant[reviewBooking.status]}>
+                  {reviewBooking.status}
+                </Badge>
+              </div>
+              <div className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+                  <div className="text-xs text-[var(--color-text-muted)]">Appointment slot</div>
+                  <div className="mt-1 font-medium text-[var(--color-text)]">
+                    {formatSlot(reviewBooking)}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+                  <div className="text-xs text-[var(--color-text-muted)]">Visit type</div>
+                  <div className="mt-1 font-medium text-[var(--color-text)]">
+                    {reviewBooking.visitType || "VIDEO"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-[color:var(--color-primary-soft-border)] bg-[var(--color-primary-soft)] p-4">
+              <h4 className="text-sm font-semibold text-[var(--color-primary)]">
+                Workspace is locked until you accept this booking
+              </h4>
+              <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+                Accept to continue into the patient workspace. If you reject this request, this review panel closes and the patient workspace stays unavailable.
+              </p>
+            </div>
+          </div>
+        ) : null}
+      </RightDrawer>
     </div>
   );
 }
