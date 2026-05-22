@@ -137,8 +137,9 @@ export default function MessagesPage() {
     const requestedOrLive = scopedThreads.filter((thread) =>
       ["REQUESTED", "ACCEPTED", "IN_PROGRESS"].includes(thread.status)
     );
-    const fromIntent =
-      activeThreadId && requestedOrLive.find((thread) => thread.id === activeThreadId);
+    const fromIntent = activeThreadId
+      ? requestedOrLive.find((thread) => thread.id === activeThreadId) ?? null
+      : null;
     return fromIntent ?? requestedOrLive[0] ?? null;
   }, [workspaceMode, scopedThreads, activeThreadId]);
 
