@@ -335,7 +335,7 @@ export default function SchedulePage() {
   );
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-6 p-4 lg:p-8">
+    <div className="mx-auto flex max-w-7xl flex-col gap-6 bg-[var(--color-bg)] p-4 text-[var(--color-text)] lg:p-8">
       <div className="overflow-hidden rounded-[2.25rem] border border-[var(--color-border)] bg-[radial-gradient(circle_at_top_right,_var(--color-accent-soft),_transparent_35%),linear-gradient(180deg,var(--color-surface)_0%,var(--color-surface-soft)_100%)] p-8 shadow-sm">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
