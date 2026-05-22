@@ -50,6 +50,17 @@ type ChatAttachment = {
   kind: "image" | "file";
 };
 
+function sortMessages(items: ChatMessage[]) {
+  return [...items].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+}
+
+function upsertMessage(items: ChatMessage[], incoming: ChatMessage) {
+  if (items.some((item) => item.id === incoming.id)) return items;
+  return sortMessages([...items, incoming]);
+}
+
 export default function MessagesPage() {
   const [threads, setThreads] = useState<ThreadRow[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
@@ -70,12 +81,15 @@ export default function MessagesPage() {
   const typingSentRef = useRef(false);
   const socketRef = useRef<Socket | null>(null);
   const activeThreadRef = useRef<string | null>(null);
+  const workspaceModeRef = useRef(false);
+  const workspaceThreadIdsRef = useRef<Set<string>>(new Set());
   const outgoingCallRef = useRef<{
     appointmentId: string;
     callType: "VIDEO" | "AUDIO";
   } | null>(null);
   const { chatIntent, clearChatIntent, notify, patientWorkspace } = useProviderUi();
   const { ensureZego, setOutgoingHandlers } = useProviderCall();
+  const workspaceMode = Boolean(patientWorkspace?.id);
 
   useEffect(() => {
     async function load() {
@@ -110,15 +124,34 @@ export default function MessagesPage() {
     () => (patientWorkspace?.id ? threads.filter((t) => t.patientId === patientWorkspace.id) : threads),
     [threads, patientWorkspace?.id]
   );
+  const scopedThreadIds = useMemo(() => new Set(scopedThreads.map((thread) => thread.id)), [scopedThreads]);
+  const threadMap = useMemo(
+    () => Object.fromEntries(scopedThreads.map((thread) => [thread.id, thread])),
+    [scopedThreads]
+  );
   const activeThreads = useMemo(() => scopedThreads.filter((t) => activeStatuses.has(t.status)), [scopedThreads, activeStatuses]);
   const historyThreads = useMemo(() => scopedThreads.filter((t) => historyStatuses.has(t.status)), [scopedThreads, historyStatuses]);
   const visibleThreads = threadView === "active" ? activeThreads : historyThreads;
+  const workspaceSendThread = useMemo(() => {
+    if (!workspaceMode) return null;
+    const requestedOrLive = scopedThreads.filter((thread) =>
+      ["REQUESTED", "ACCEPTED", "IN_PROGRESS"].includes(thread.status)
+    );
+    const fromIntent =
+      activeThreadId && requestedOrLive.find((thread) => thread.id === activeThreadId);
+    return fromIntent ?? requestedOrLive[0] ?? null;
+  }, [workspaceMode, scopedThreads, activeThreadId]);
 
   useEffect(() => {
     if (!scopedThreads.length || activeThreadId) return;
     const next = activeThreads[0] ?? historyThreads[0];
     if (next) setActiveThreadId(next.id);
   }, [scopedThreads, activeThreadId, activeThreads, historyThreads]);
+
+  useEffect(() => {
+    workspaceModeRef.current = workspaceMode;
+    workspaceThreadIdsRef.current = scopedThreadIds;
+  }, [workspaceMode, scopedThreadIds]);
 
   useEffect(() => {
     async function loadMe() {
@@ -134,6 +167,28 @@ export default function MessagesPage() {
 
   useEffect(() => {
     async function loadMessages() {
+      if (workspaceMode) {
+        if (!scopedThreads.length) {
+          setMessages([]);
+          return;
+        }
+        setLoadingMessages(true);
+        try {
+          const rows = await Promise.all(
+            scopedThreads.map((thread) =>
+              fetchApi(`/providers/messages/${thread.id}`).catch(() => [])
+            )
+          );
+          const merged = rows.flatMap((row) => (Array.isArray(row) ? row : [])) as ChatMessage[];
+          setMessages(sortMessages(merged));
+        } catch {
+          setMessages([]);
+        } finally {
+          setLoadingMessages(false);
+        }
+        return;
+      }
+
       if (!activeThreadId) return;
       setLoadingMessages(true);
       try {
@@ -146,7 +201,7 @@ export default function MessagesPage() {
       }
     }
     loadMessages();
-  }, [activeThreadId]);
+  }, [activeThreadId, scopedThreads, workspaceMode]);
 
   const resetUnread = useCallback((threadId: string) => {
     setUnreadCounts((prev) => {
@@ -179,8 +234,15 @@ export default function MessagesPage() {
 
     const handleMessage = (payload: { appointmentId: string; data: ChatMessage }) => {
       if (!payload?.appointmentId) return;
+      if (
+        workspaceModeRef.current &&
+        workspaceThreadIdsRef.current.has(payload.appointmentId)
+      ) {
+        setMessages((prev) => upsertMessage(prev, payload.data));
+        return;
+      }
       if (payload.appointmentId === activeThreadRef.current) {
-        setMessages((prev) => [...prev, payload.data]);
+        setMessages((prev) => upsertMessage(prev, payload.data));
       } else {
         setUnreadCounts((prev) => ({
           ...prev,
@@ -215,6 +277,12 @@ export default function MessagesPage() {
     socket.on("typing", handleTyping);
     socket.on("presence", handlePresence);
     socket.on("connect", () => {
+      if (workspaceModeRef.current) {
+        workspaceThreadIdsRef.current.forEach((appointmentId) => {
+          socket.emit("join", { appointmentId });
+        });
+        return;
+      }
       const current = activeThreadRef.current;
       if (current) socket.emit("join", { appointmentId: current });
     });
@@ -229,12 +297,18 @@ export default function MessagesPage() {
 
   useEffect(() => {
     const socket = socketRef.current;
-    if (!socket || !activeThreadId) return;
-    socket.emit("join", { appointmentId: activeThreadId });
+    if (!socket) return;
+    const roomIds = workspaceMode
+      ? scopedThreads.map((thread) => thread.id)
+      : activeThreadId
+        ? [activeThreadId]
+        : [];
+    if (!roomIds.length) return;
+    roomIds.forEach((roomId) => socket.emit("join", { appointmentId: roomId }));
     return () => {
-      socket.emit("leave", { appointmentId: activeThreadId });
+      roomIds.forEach((roomId) => socket.emit("leave", { appointmentId: roomId }));
     };
-  }, [activeThreadId]);
+  }, [activeThreadId, scopedThreads, workspaceMode]);
 
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -253,20 +327,24 @@ export default function MessagesPage() {
     []
   );
 
-  const activeThread = scopedThreads.find((thread) => thread.id === activeThreadId) ?? null;
-  const typingActive = activeThreadId ? typingByThread[activeThreadId] : false;
-  const onlineActive = activeThreadId ? onlineByThread[activeThreadId] : false;
+  const activeThread = workspaceMode
+    ? workspaceSendThread ?? scopedThreads[0] ?? null
+    : scopedThreads.find((thread) => thread.id === activeThreadId) ?? null;
+  const typingThreadId = workspaceMode ? workspaceSendThread?.id ?? null : activeThreadId;
+  const typingActive = typingThreadId ? typingByThread[typingThreadId] : false;
+  const onlineActive = typingThreadId ? onlineByThread[typingThreadId] : false;
 
   const sendTyping = useCallback(
     async (isTyping: boolean) => {
-      if (!activeThreadId) return;
+      const targetThreadId = workspaceMode ? workspaceSendThread?.id : activeThreadId;
+      if (!targetThreadId) return;
       const socket = socketRef.current;
       if (socket?.connected) {
-        socket.emit("typing", { appointmentId: activeThreadId, isTyping });
+        socket.emit("typing", { appointmentId: targetThreadId, isTyping });
         return;
       }
       try {
-        await fetchApi(`/providers/messages/${activeThreadId}/typing`, {
+        await fetchApi(`/providers/messages/${targetThreadId}/typing`, {
           method: "POST",
           body: JSON.stringify({ isTyping }),
         });
@@ -274,13 +352,14 @@ export default function MessagesPage() {
         // ignore
       }
     },
-    [activeThreadId]
+    [activeThreadId, workspaceMode, workspaceSendThread]
   );
 
   const handleDraftChange = useCallback(
     (value: string) => {
       setDraft(value);
-      if (!activeThreadId) return;
+      const targetThreadId = workspaceMode ? workspaceSendThread?.id : activeThreadId;
+      if (!targetThreadId) return;
       if (!typingSentRef.current) {
         typingSentRef.current = true;
         sendTyping(true);
@@ -291,7 +370,7 @@ export default function MessagesPage() {
         sendTyping(false);
       }, 1200);
     },
-    [activeThreadId, sendTyping]
+    [activeThreadId, sendTyping, workspaceMode, workspaceSendThread]
   );
 
   const recordCallEvent = useCallback(
@@ -307,7 +386,7 @@ export default function MessagesPage() {
           method: "POST",
           body: JSON.stringify(payload),
         });
-        setMessages((prev) => [...prev, created]);
+        setMessages((prev) => upsertMessage(prev, created));
       } catch (err) {
         console.error("call-event failed", err);
       }
@@ -382,21 +461,22 @@ export default function MessagesPage() {
   );
 
   async function handleSend() {
-    if (!activeThreadId || !draft.trim()) return;
+    const targetThreadId = workspaceMode ? workspaceSendThread?.id : activeThreadId;
+    if (!targetThreadId || !draft.trim()) return;
     const text = draft.trim();
     setDraft("");
     try {
       const socket = socketRef.current;
       if (socket?.connected) {
-        socket.emit("message", { appointmentId: activeThreadId, text });
+        socket.emit("message", { appointmentId: targetThreadId, text });
         sendTyping(false);
         return;
       }
-      const created = await fetchApi(`/providers/messages/${activeThreadId}`, {
+      const created = await fetchApi(`/providers/messages/${targetThreadId}`, {
         method: "POST",
         body: JSON.stringify({ text }),
       });
-      setMessages((prev) => [...prev, created]);
+      setMessages((prev) => upsertMessage(prev, created));
       sendTyping(false);
     } catch (err: any) {
       notify(err?.message || "Failed to send message.");
@@ -405,12 +485,13 @@ export default function MessagesPage() {
   }
 
   async function handleAttachmentSelect(file?: File | null) {
-    if (!activeThreadId || !file) return;
+    const targetThreadId = workspaceMode ? workspaceSendThread?.id : activeThreadId;
+    if (!targetThreadId || !file) return;
     setUploadingAttachment(true);
     try {
       const uploadBody = new FormData();
       uploadBody.append("file", file);
-      const uploaded = await fetchApi(`/providers/messages/${activeThreadId}/attachments`, {
+      const uploaded = await fetchApi(`/providers/messages/${targetThreadId}/attachments`, {
         method: "POST",
         body: uploadBody,
       });
@@ -424,7 +505,7 @@ export default function MessagesPage() {
         kind: uploaded.mimeType?.startsWith("image/") ? "image" : "file",
       };
 
-      const created = await fetchApi(`/providers/messages/${activeThreadId}`, {
+      const created = await fetchApi(`/providers/messages/${targetThreadId}`, {
         method: "POST",
         body: JSON.stringify({
           text: draft.trim(),
@@ -432,7 +513,7 @@ export default function MessagesPage() {
         }),
       });
 
-      setMessages((prev) => [...prev, created]);
+      setMessages((prev) => upsertMessage(prev, created));
       setDraft("");
     } catch (err: any) {
       notify(err?.message || "Failed to send attachment.");
@@ -574,9 +655,11 @@ export default function MessagesPage() {
         {mobile ? (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <Button size="sm" variant="ghost" className="shrink-0 px-2" onClick={() => setMobileChatOpen(false)}>
-                Back
-              </Button>
+              {!workspaceMode && (
+                <Button size="sm" variant="ghost" className="shrink-0 px-2" onClick={() => setMobileChatOpen(false)}>
+                  Back
+                </Button>
+              )}
               {activeThread ? (
                 <Avatar
                   initials={activeThread.patientName.split(" ").map((p) => p[0]).join("").slice(0, 2)}
@@ -587,13 +670,21 @@ export default function MessagesPage() {
                 />
               ) : null}
               <div className="min-w-0 flex-1">
-                <div className="truncate text-base font-semibold text-[var(--color-text)]">{activeThread?.patientName ?? "Chat"}</div>
+                <div className="truncate text-base font-semibold text-[var(--color-text)]">
+                  {workspaceMode ? patientWorkspace?.name ?? "Patient Chat" : activeThread?.patientName ?? "Chat"}
+                </div>
                 <div className="mt-1 text-xs text-[var(--color-text-muted)]">
-                  {activeThread ? (onlineActive ? "Online now" : "Offline") : "Select a conversation to start"}
+                  {workspaceMode
+                    ? workspaceSendThread
+                      ? "Full conversation history with this patient"
+                      : "Past conversation history for this patient"
+                    : activeThread
+                      ? (onlineActive ? "Online now" : "Offline")
+                      : "Select a conversation to start"}
                 </div>
               </div>
             </div>
-            {activeThread && (
+            {activeThread && workspaceSendThread && (
               <div className="flex items-center gap-2">
                 <Button size="sm" variant="outline" className="flex-1 rounded-full" onClick={() => handleCall(true)}>
                   Video Call
@@ -606,10 +697,18 @@ export default function MessagesPage() {
           </div>
         ) : (
           <CardHeader
-            title={activeThread ? activeThread.patientName : "Chat"}
-            subtitle={activeThread ? (onlineActive ? "Online now" : "Offline") : "Select a conversation to start"}
+            title={workspaceMode ? patientWorkspace?.name ?? "Patient Chat" : activeThread ? activeThread.patientName : "Chat"}
+            subtitle={
+              workspaceMode
+                ? workspaceSendThread
+                  ? "A single patient workspace conversation across current and previous appointments."
+                  : "Viewing previous conversation history for this patient."
+                : activeThread
+                  ? (onlineActive ? "Online now" : "Offline")
+                  : "Select a conversation to start"
+            }
             actions={
-              activeThread ? (
+              activeThread && workspaceSendThread ? (
                 <div className="flex w-full sm:w-auto flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={() => handleCall(true)}>
                     Video Call
@@ -625,7 +724,7 @@ export default function MessagesPage() {
       </div>
       {!activeThread && (
         <div className="flex-1 flex items-center justify-center px-4 text-sm text-[var(--color-text-muted)]">
-          Select a conversation to view messages.
+          {workspaceMode ? "No conversations yet for this patient." : "Select a conversation to view messages."}
         </div>
       )}
       {activeThread && (
@@ -643,24 +742,42 @@ export default function MessagesPage() {
           >
             {loadingMessages && <div className="text-xs text-[var(--color-text-muted)]">Loading messages...</div>}
             {!loadingMessages && messages.length === 0 && (
-              <div className="text-sm text-[var(--color-text-muted)]">No messages yet. Say hello to start the conversation.</div>
+              <div className="text-sm text-[var(--color-text-muted)]">
+                {workspaceSendThread
+                  ? "No messages yet. Say hello to start the conversation."
+                  : "No messages yet for this patient."}
+              </div>
             )}
-            {messages.map((message) => {
+            {messages.map((message, index) => {
+              const previousMessage = index > 0 ? messages[index - 1] : null;
+              const showSessionDivider =
+                workspaceMode &&
+                (!!previousMessage ? previousMessage.appointmentId !== message.appointmentId : true);
+              const sessionThread = threadMap[message.appointmentId];
               if (message.messageType === "CALL") {
                 const mine = meId ? message.senderId === meId : message.senderRole === "PROVIDER";
                 return (
-                  <div key={message.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
-                    <div
-                      className={cn(
-                        "max-w-[88%] sm:max-w-[78%] rounded-2xl px-4 py-3 text-sm border shadow-sm",
-                        mine
-                          ? "bg-[var(--color-primary-soft)] text-[var(--color-text)] border-[var(--color-primary-soft-border)]"
-                          : "bg-[var(--color-surface)] text-[var(--color-text)] border-[var(--color-border)]",
-                        mobile && "max-w-[82%] rounded-[20px]"
-                      )}
-                    >
-                      <div className="text-[10px] uppercase tracking-[0.25em] opacity-70 mb-1">{renderCallType(message)}</div>
-                      <div className="text-sm font-semibold">{renderCallLabel(message)}</div>
+                  <div key={message.id} className="space-y-3">
+                    {showSessionDivider && (
+                      <div className="flex justify-center">
+                        <div className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+                          {sessionThread?.status === "REQUESTED" ? "New booking started" : "Previous visit conversation"} · {new Date(message.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                    )}
+                    <div className={cn("flex", mine ? "justify-end" : "justify-start")}>
+                      <div
+                        className={cn(
+                          "max-w-[88%] sm:max-w-[78%] rounded-2xl px-4 py-3 text-sm border shadow-sm",
+                          mine
+                            ? "bg-[var(--color-primary-soft)] text-[var(--color-text)] border-[var(--color-primary-soft-border)]"
+                            : "bg-[var(--color-surface)] text-[var(--color-text)] border-[var(--color-border)]",
+                          mobile && "max-w-[82%] rounded-[20px]"
+                        )}
+                      >
+                        <div className="text-[10px] uppercase tracking-[0.25em] opacity-70 mb-1">{renderCallType(message)}</div>
+                        <div className="text-sm font-semibold">{renderCallLabel(message)}</div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -671,45 +788,54 @@ export default function MessagesPage() {
                   ? `${message.sender?.firstName ?? ""} ${message.sender?.lastName ?? ""}`.trim()
                   : "Patient";
               return (
-                <div key={message.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
-                  <div
-                    className={cn(
-                      "max-w-[88%] sm:max-w-[78%] rounded-2xl px-4 py-3 text-sm shadow-sm",
-                      mine
-                        ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]"
-                        : "bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)]",
-                      mobile && "max-w-[82%] rounded-[22px] px-4 py-2.5"
-                    )}
-                  >
-                    <div className="text-[10px] opacity-70 mb-1">{mine ? "You" : senderName}</div>
-                    <div className="leading-relaxed">{message.text}</div>
-                    {!!message.attachments?.length && (
-                      <div className="mt-3 space-y-2">
-                        {message.attachments.map((attachment) => (
-                          <button
-                            key={attachment.key}
-                            type="button"
-                            onClick={() => downloadAttachment(attachment)}
-                            className={cn(
-                              "block w-full overflow-hidden rounded-2xl border text-left",
-                              mine ? "border-white/20 bg-white/10" : "border-[var(--color-border)] bg-[var(--color-surface-soft)]"
-                            )}
-                          >
-                            {attachment.kind === "image" ? (
-                              <img src={attachment.url} alt={attachment.name} className="h-40 w-full object-cover" />
-                            ) : (
-                              <div className="px-4 py-3 text-sm font-medium">{attachment.name}</div>
-                            )}
-                            <div className="flex items-center justify-between gap-3 px-4 py-3 text-xs opacity-80">
-                              <span className="truncate">{attachment.name}</span>
-                              <span>Download</span>
-                            </div>
-                          </button>
-                        ))}
+                <div key={message.id} className="space-y-3">
+                  {showSessionDivider && (
+                    <div className="flex justify-center">
+                      <div className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+                        {sessionThread?.status === "REQUESTED" ? "New booking started" : "Previous visit conversation"} · {new Date(message.createdAt).toLocaleDateString()}
                       </div>
-                    )}
-                    <div className="text-[10px] opacity-60 mt-2">
-                      {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                  )}
+                  <div className={cn("flex", mine ? "justify-end" : "justify-start")}>
+                    <div
+                      className={cn(
+                        "max-w-[88%] sm:max-w-[78%] rounded-2xl px-4 py-3 text-sm shadow-sm",
+                        mine
+                          ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]"
+                          : "bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)]",
+                        mobile && "max-w-[82%] rounded-[22px] px-4 py-2.5"
+                      )}
+                    >
+                      <div className="text-[10px] opacity-70 mb-1">{mine ? "You" : senderName}</div>
+                      <div className="leading-relaxed">{message.text}</div>
+                      {!!message.attachments?.length && (
+                        <div className="mt-3 space-y-2">
+                          {message.attachments.map((attachment) => (
+                            <button
+                              key={attachment.key}
+                              type="button"
+                              onClick={() => downloadAttachment(attachment)}
+                              className={cn(
+                                "block w-full overflow-hidden rounded-2xl border text-left",
+                                mine ? "border-white/20 bg-white/10" : "border-[var(--color-border)] bg-[var(--color-surface-soft)]"
+                              )}
+                            >
+                              {attachment.kind === "image" ? (
+                                <img src={attachment.url} alt={attachment.name} className="h-40 w-full object-cover" />
+                              ) : (
+                                <div className="px-4 py-3 text-sm font-medium">{attachment.name}</div>
+                              )}
+                              <div className="flex items-center justify-between gap-3 px-4 py-3 text-xs opacity-80">
+                                <span className="truncate">{attachment.name}</span>
+                                <span>Download</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <div className="text-[10px] opacity-60 mt-2">
+                        {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -717,23 +843,26 @@ export default function MessagesPage() {
             })}
             <div ref={messageEndRef} />
           </div>
-          {typingActive && <div className="px-4 sm:px-6 pb-2 text-xs text-[var(--color-text-muted)]">{activeThread.patientName} is typing...</div>}
+          {typingActive && workspaceSendThread && (
+            <div className="px-4 sm:px-6 pb-2 text-xs text-[var(--color-text-muted)]">{activeThread.patientName} is typing...</div>
+          )}
           <div className={cn("border-t border-[var(--color-border)] p-4 bg-[var(--color-surface)]", mobile && "sticky bottom-0 z-10 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 px-3 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface)]/82 [padding-bottom:calc(env(safe-area-inset-bottom)+0.75rem)]")}>
             <div className={cn("flex flex-col sm:flex-row items-stretch sm:items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 sm:py-2 shadow-[0_8px_18px_rgba(15,23,42,0.06)]", mobile && "flex-row items-end gap-2 rounded-[28px] border-[var(--color-border)] px-3 py-2")}>
               <button
                 type="button"
                 className="h-11 w-11 shrink-0 rounded-full border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text)]"
                 onClick={() => attachmentInputRef.current?.click()}
-                disabled={uploadingAttachment}
+                disabled={uploadingAttachment || !workspaceSendThread}
               >
                 {uploadingAttachment ? "..." : "+"}
               </button>
               <input
                 value={draft}
                 onChange={(e) => handleDraftChange(e.target.value)}
-                placeholder="Type your message..."
+                placeholder={workspaceSendThread ? "Type your message..." : "This conversation is read-only until the patient books again."}
                 className={cn("flex-1 min-w-0 bg-transparent text-sm outline-none", mobile && "min-h-[42px] px-2")}
                 onBlur={() => sendTyping(false)}
+                disabled={!workspaceSendThread}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -741,7 +870,12 @@ export default function MessagesPage() {
                   }
                 }}
               />
-              <Button size="sm" className={cn("w-full sm:w-auto bg-[var(--color-primary)] text-[var(--color-on-primary)]", mobile && "h-11 w-11 shrink-0 rounded-full px-0 text-xs")} onClick={handleSend}>
+              <Button
+                size="sm"
+                disabled={!workspaceSendThread}
+                className={cn("w-full sm:w-auto bg-[var(--color-primary)] text-[var(--color-on-primary)]", mobile && "h-11 w-11 shrink-0 rounded-full px-0 text-xs")}
+                onClick={handleSend}
+              >
                 Send
               </Button>
               <input
@@ -781,13 +915,21 @@ export default function MessagesPage() {
       </div>
 
       <div className="lg:hidden -mx-4 sm:mx-0 flex-1 min-h-0">
-        {!mobileChatOpen || !activeThread ? renderThreadList(true) : renderChatPane(true)}
+        {workspaceMode
+          ? renderChatPane(true)
+          : !mobileChatOpen || !activeThread
+            ? renderThreadList(true)
+            : renderChatPane(true)}
       </div>
 
-      <div className="hidden lg:grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)] gap-4 sm:gap-6 flex-1 min-h-0">
-        {renderThreadList(false)}
-        {renderChatPane(false)}
-      </div>
+      {workspaceMode ? (
+        <div className="hidden lg:block flex-1 min-h-0">{renderChatPane(false)}</div>
+      ) : (
+        <div className="hidden lg:grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)] gap-4 sm:gap-6 flex-1 min-h-0">
+          {renderThreadList(false)}
+          {renderChatPane(false)}
+        </div>
+      )}
     </div>
   );
 }
