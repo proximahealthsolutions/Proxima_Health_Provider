@@ -2,23 +2,23 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Badge from "@/components/shared/Badge";
-import Button from "@/components/shared/Button";
 import Card from "@/components/shared/Card";
 import Icon from "@/components/shared/Icon";
-import { cn } from "@/lib/utils";
-import { bookingStatusVariant, ProviderBooking, BookingStatus } from "@/types";
+import { bookingStatusVariant, ProviderBooking } from "@/types";
 import { getProviderBookings } from "@/services/provider-bookings.service";
 import {
-  getWeeklyAvailability,
-  saveWeeklyAvailability,
-  getAvailabilityOverrides,
-  createAvailabilityOverride,
-  deleteAvailabilityOverride,
   AvailabilityOverride,
+  WeeklyAvailabilityDay,
+  getAvailabilityOverrides,
+  getWeeklyAvailability,
+  saveProviderDateSlots,
+  saveWeeklyAvailability,
 } from "@/services/provider-availability.service";
 
 const BOOKED_DAY_STATUSES = new Set(["requested", "accepted", "in_progress", "ended"]);
-
+const SLOT_MINUTES = 30;
+const SLOT_START_HOUR = 7;
+const SLOT_END_HOUR = 20;
 const COMMON_TIMEZONES = [
   "UTC",
   "Africa/Lagos",
@@ -38,6 +38,23 @@ const COMMON_TIMEZONES = [
   "Australia/Sydney",
 ];
 
+function pad(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function formatDateInput(date: Date) {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function buildTimeOptions() {
+  const slots: string[] = [];
+  for (let hour = SLOT_START_HOUR; hour < SLOT_END_HOUR; hour += 1) {
+    slots.push(`${pad(hour)}:00`);
+    slots.push(`${pad(hour)}:30`);
+  }
+  return slots;
+}
+
 function sortByStartAt(items: ProviderBooking[]) {
   return [...items].sort((a, b) => {
     const left = a.startAt ? new Date(a.startAt).getTime() : 0;
@@ -46,19 +63,53 @@ function sortByStartAt(items: ProviderBooking[]) {
   });
 }
 
+function getZonedDateParts(value: string | Date, timeZone: string) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(new Date(value));
+  const getPart = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  return {
+    date: `${getPart("year")}-${getPart("month")}-${getPart("day")}`,
+    time: `${getPart("hour")}:${getPart("minute")}`,
+  };
+}
+
+function formatRangeLabel(startTime: string, endTime: string) {
+  return `${startTime} - ${endTime}`;
+}
+
+function expandRangeToSlotStarts(startTime: string, endTime: string) {
+  const slots: string[] = [];
+  let cursor = startTime;
+  while (cursor < endTime) {
+    slots.push(cursor);
+    const [hours, minutes] = cursor.split(":").map(Number);
+    const nextMinutes = hours * 60 + minutes + SLOT_MINUTES;
+    cursor = `${pad(Math.floor(nextMinutes / 60))}:${pad(nextMinutes % 60)}`;
+  }
+  return slots;
+}
+
 export default function SchedulePage() {
+  const timeOptions = useMemo(() => buildTimeOptions(), []);
   const [bookings, setBookings] = useState<ProviderBooking[]>([]);
   const [overrides, setOverrides] = useState<AvailabilityOverride[]>([]);
+  const [weeklyDays, setWeeklyDays] = useState<WeeklyAvailabilityDay[]>([]);
   const [timezone, setTimezone] = useState("Africa/Lagos");
+  const [selectedDate, setSelectedDate] = useState(formatDateInput(new Date()));
+  const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingTimezone, setSavingTimezone] = useState(false);
+  const [savingSlots, setSavingSlots] = useState(false);
   const [flashMessage, setFlashMessage] = useState("");
-
-  // Override State
-  const [newOverrideDate, setNewOverrideDate] = useState("");
-  const [newOverrideStart, setNewOverrideStart] = useState("09:00");
-  const [newOverrideEnd, setNewOverrideEnd] = useState("10:00");
-  const [isAddingOverride, setIsAddingOverride] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -70,16 +121,19 @@ export default function SchedulePage() {
           getAvailabilityOverrides(),
           getWeeklyAvailability(),
         ]);
+
         if (!mounted) return;
 
         setBookings(sortByStartAt(bookingData));
         setOverrides(overrideData || []);
+        setWeeklyDays(weeklyData?.days || []);
         if (weeklyData?.timezone) {
           setTimezone(weeklyData.timezone);
         }
       } catch {
         if (!mounted) return;
         setBookings([]);
+        setOverrides([]);
       } finally {
         if (!mounted) return;
         setLoading(false);
@@ -96,19 +150,152 @@ export default function SchedulePage() {
     window.setTimeout(() => setFlashMessage(""), 3000);
   }
 
-  async function handleSaveTimezone(newTz: string) {
-    setTimezone(newTz);
+  const publishedRanges = useMemo(() => {
+    return overrides
+      .filter((override) => override.isAvailable && override.startTime && override.endTime)
+      .sort((a, b) => {
+        const left = `${a.date}-${a.startTime}`;
+        const right = `${b.date}-${b.startTime}`;
+        return left.localeCompare(right);
+      });
+  }, [overrides]);
+
+  const selectedDateRanges = useMemo(
+    () =>
+      publishedRanges
+        .filter((override) => override.date.slice(0, 10) === selectedDate)
+        .flatMap((override) =>
+          expandRangeToSlotStarts(override.startTime as string, override.endTime as string)
+        ),
+    [publishedRanges, selectedDate]
+  );
+
+  useEffect(() => {
+    setSelectedSlots(Array.from(new Set(selectedDateRanges)).sort());
+  }, [selectedDateRanges]);
+
+  const activeDatesCount = useMemo(() => {
+    return new Set(publishedRanges.map((override) => override.date.slice(0, 10))).size;
+  }, [publishedRanges]);
+
+  const bookedSlotStarts = useMemo(() => {
+    const result = new Set<string>();
+    bookings
+      .filter((booking) => BOOKED_DAY_STATUSES.has(booking.status))
+      .forEach((booking) => {
+        if (!booking.startAt || !booking.endAt) return;
+        const start = getZonedDateParts(booking.startAt, timezone);
+        const end = getZonedDateParts(booking.endAt, timezone);
+        if (start.date !== selectedDate) return;
+
+        let cursor = start.time;
+        while (cursor < end.time) {
+          result.add(cursor);
+          const [hours, minutes] = cursor.split(":").map(Number);
+          const nextMinutes = hours * 60 + minutes + SLOT_MINUTES;
+          cursor = `${pad(Math.floor(nextMinutes / 60))}:${pad(nextMinutes % 60)}`;
+        }
+      });
+    return result;
+  }, [bookings, selectedDate, timezone]);
+
+  const pastSlotStarts = useMemo(() => {
+    const now = getZonedDateParts(new Date(), timezone);
+    const result = new Set<string>();
+    if (now.date !== selectedDate) {
+      return result;
+    }
+
+    timeOptions.forEach((time) => {
+      if (time < now.time) {
+        result.add(time);
+      }
+    });
+
+    return result;
+  }, [selectedDate, timeOptions, timezone]);
+
+  const selectedRangesPreview = useMemo(() => {
+    if (selectedSlots.length === 0) return [];
+
+    const sorted = [...selectedSlots].sort((a, b) => a.localeCompare(b));
+    const ranges: Array<{ startTime: string; endTime: string }> = [];
+    let rangeStart = sorted[0];
+    let rangeEndMinutes = Number(sorted[0].slice(0, 2)) * 60 + Number(sorted[0].slice(3, 5)) + SLOT_MINUTES;
+
+    for (let index = 1; index < sorted.length; index += 1) {
+      const current = sorted[index];
+      const currentMinutes = Number(current.slice(0, 2)) * 60 + Number(current.slice(3, 5));
+      if (currentMinutes === rangeEndMinutes) {
+        rangeEndMinutes += SLOT_MINUTES;
+        continue;
+      }
+
+      ranges.push({
+        startTime: rangeStart,
+        endTime: `${pad(Math.floor(rangeEndMinutes / 60))}:${pad(rangeEndMinutes % 60)}`,
+      });
+
+      rangeStart = current;
+      rangeEndMinutes = currentMinutes + SLOT_MINUTES;
+    }
+
+    ranges.push({
+      startTime: rangeStart,
+      endTime: `${pad(Math.floor(rangeEndMinutes / 60))}:${pad(rangeEndMinutes % 60)}`,
+    });
+
+    return ranges;
+  }, [selectedSlots]);
+
+  async function handleSaveTimezone(nextTimezone: string) {
+    const previousTimezone = timezone;
+    setTimezone(nextTimezone);
     setSavingTimezone(true);
     try {
-      await saveWeeklyAvailability({
-        timezone: newTz,
-        days: [], // We don't use weekly rules, but the endpoint requires them
+      const updated = await saveWeeklyAvailability({
+        timezone: nextTimezone,
+        days: weeklyDays,
       });
+      setWeeklyDays(updated.days || []);
       showFlash("Schedule timezone updated.");
     } catch (err: any) {
+      setTimezone(previousTimezone);
       showFlash(err?.message || "Failed to update timezone.");
     } finally {
       setSavingTimezone(false);
+    }
+  }
+
+  function toggleSlot(time: string) {
+    if (bookedSlotStarts.has(time) || pastSlotStarts.has(time)) {
+      return;
+    }
+
+    setSelectedSlots((current) =>
+      current.includes(time) ? current.filter((slot) => slot !== time) : [...current, time].sort()
+    );
+  }
+
+  async function refreshOverrides() {
+    const updated = await getAvailabilityOverrides();
+    setOverrides(updated || []);
+  }
+
+  async function handleSaveSelectedSlots() {
+    setSavingSlots(true);
+    try {
+      await saveProviderDateSlots({
+        date: selectedDate,
+        slotMinutes: SLOT_MINUTES,
+        slots: selectedSlots,
+      });
+      await refreshOverrides();
+      showFlash(selectedSlots.length ? "Selected slots opened for patients." : "Selected date cleared.");
+    } catch (err: any) {
+      showFlash(err?.message || "Failed to save selected slots.");
+    } finally {
+      setSavingSlots(false);
     }
   }
 
@@ -147,289 +334,236 @@ export default function SchedulePage() {
     [bookedDayGroups]
   );
 
-  async function handleAddOverride() {
-    if (!newOverrideDate) return;
-    setIsAddingOverride(true);
-    try {
-      const resp = await createAvailabilityOverride({
-        date: newOverrideDate,
-        startTime: newOverrideStart,
-        endTime: newOverrideEnd,
-        isAvailable: true,
-      });
-      setOverrides((prev) => [...prev, resp].sort((a, b) => a.date.localeCompare(b.date)));
-      setNewOverrideDate("");
-      showFlash("Availability for specific date added.");
-    } catch (err: any) {
-      showFlash(err?.message || "Failed to add availability.");
-    } finally {
-      setIsAddingOverride(false);
-    }
-  }
-
-  async function handleDeleteOverride(id: string) {
-    try {
-      await deleteAvailabilityOverride(id);
-      setOverrides((prev) => prev.filter((o) => o.id !== id));
-      showFlash("Availability removed.");
-    } catch (err: any) {
-      showFlash(err?.message || "Failed to remove availability.");
-    }
-  }
-
   return (
-    <div className="flex flex-col gap-6 p-4 lg:p-8 max-w-7xl mx-auto">
-      {/* Header Section */}
-      <div className="rounded-[2.5rem] bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#334155] p-10 text-white shadow-2xl overflow-hidden relative border border-slate-700/50">
-        <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-          <div className="max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] font-semibold uppercase tracking-wider mb-4">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              Manual Selection Mode
+    <div className="mx-auto flex max-w-7xl flex-col gap-6 p-4 lg:p-8">
+      <div className="overflow-hidden rounded-[2.25rem] border border-slate-200 bg-[radial-gradient(circle_at_top_right,_rgba(70,221,99,0.18),_transparent_35%),linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-8 shadow-sm">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#c9f2d2] bg-[#effcf2] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1e8a36]">
+              <span className="h-2 w-2 rounded-full bg-[#3fd85b]" />
+              Provider schedule
             </div>
-            <h1 className="text-4xl lg:text-5xl font-bold tracking-tight leading-tight">
-              Manage Your <span className="text-primary italic">Availability</span>
-            </h1>
-            <p className="mt-4 text-slate-300 text-lg leading-relaxed font-medium">
-              You are in full control. Only the dates you manually publish below will be available for patient bookings.
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 lg:text-4xl">Availability schedule</h1>
+            <p className="mt-3 text-sm font-medium text-slate-600 lg:text-base">
+              Approved physicians can create patient-bookable 30-minute slot windows.
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <div className="flex flex-col items-center bg-white/5 backdrop-blur-md rounded-3xl p-4 border border-white/10 w-full sm:w-auto min-w-[200px]">
-              <div className="flex items-center gap-2 mb-2">
-                <Icon name="clock" size={14} className="text-slate-400" />
-                <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-widest">Schedule Timezone</span>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+              <div className="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                <Icon name="clock" size={12} />
+                Timezone
               </div>
               <select
                 value={timezone}
                 disabled={savingTimezone}
-                onChange={(e) => handleSaveTimezone(e.target.value)}
-                className="bg-transparent border-none text-sm font-bold text-white focus:ring-0 p-0 cursor-pointer hover:text-primary transition-colors"
+                onChange={(event) => handleSaveTimezone(event.target.value)}
+                className="bg-transparent text-sm font-semibold text-slate-700 outline-none"
               >
-                {COMMON_TIMEZONES.map(tz => <option key={tz} value={tz} className="bg-[#1e293b] text-white">{tz}</option>)}
+                {COMMON_TIMEZONES.map((tz) => (
+                  <option key={tz} value={tz}>
+                    {tz}
+                  </option>
+                ))}
               </select>
             </div>
-            <div className="flex flex-col items-center bg-primary rounded-3xl p-6 shadow-lg shadow-primary/20 w-full sm:w-auto min-w-[160px]">
-              <span className="text-white/70 text-[10px] font-semibold uppercase tracking-widest mb-1 text-center">Active Dates</span>
-              <span className="text-4xl font-bold text-white">{overrides.length}</span>
+
+            <div className="rounded-2xl bg-[#46dd63] px-5 py-4 text-white shadow-lg shadow-[#46dd63]/25">
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/75">Active dates</div>
+              <div className="mt-1 text-3xl font-bold leading-none">{activeDatesCount}</div>
             </div>
           </div>
         </div>
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-[100px] -mr-32 -mt-32 opacity-50" />
       </div>
 
-      {flashMessage && (
-        <div className="animate-in fade-in slide-in-from-top-4 duration-500 rounded-[1.5rem] border border-[var(--color-success-soft-border)] bg-[var(--color-success-soft)] px-6 py-4 text-sm font-semibold text-[var(--color-success)] flex items-center justify-between shadow-sm">
+      {flashMessage ? (
+        <div className="flex items-center justify-between rounded-2xl border border-[#caecd3] bg-[#f1fbf4] px-4 py-3 text-sm font-semibold text-[#1b7d32] shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="p-1.5 rounded-full bg-[var(--color-success)] text-white">
-              <Icon name="check" className="w-3.5 h-3.5" />
-            </div>
+            <span className="rounded-full bg-[#2fbe4c] p-1 text-white">
+              <Icon name="check" size={12} />
+            </span>
             {flashMessage}
           </div>
-          <button onClick={() => setFlashMessage("")} className="opacity-50 hover:opacity-100 transition-opacity">
+          <button onClick={() => setFlashMessage("")} className="text-slate-400 transition hover:text-slate-700">
             <Icon name="close" size={16} />
           </button>
         </div>
-      )}
+      ) : null}
 
-      <div className="grid grid-cols-1 gap-10 xl:grid-cols-[1.6fr_1fr]">
-        <div className="space-y-8">
-          {/* Main Controls Card */}
-          <Card className="rounded-[2.5rem] border-none shadow-xl ring-1 ring-slate-200 dark:ring-slate-800 overflow-hidden bg-[var(--color-surface)]">
-            <div className="p-8 space-y-10 animate-in fade-in duration-500">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-slate-100 dark:border-slate-800">
-                <div className="space-y-1">
-                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Individual Date Selection</h3>
-                  <p className="text-[var(--color-text-muted)] font-medium">Select specific calendar days to open for appointments.</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-10">
-                {/* Add Form */}
-                <div className="space-y-6">
-                  <div className="bg-slate-50 dark:bg-slate-900/50 p-8 rounded-[2rem] ring-1 ring-slate-200 dark:ring-slate-800 space-y-6 shadow-sm">
-                    <div className="inline-flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest mb-2">
-                      <Icon name="plus" size={16} />
-                      Publish Availability
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Calendar Date</label>
-                      <input
-                        type="date"
-                        value={newOverrideDate}
-                        onChange={(e) => setNewOverrideDate(e.target.value)}
-                        min={new Date().toISOString().split("T")[0]}
-                        className="w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-2xl text-base font-semibold p-4 focus:ring-4 focus:ring-primary/20 text-slate-900 dark:text-white shadow-sm transition-all"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Starts At</label>
-                        <input
-                          type="time"
-                          value={newOverrideStart}
-                          onChange={(e) => setNewOverrideStart(e.target.value)}
-                          className="w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-2xl text-base font-semibold p-4 focus:ring-4 focus:ring-primary/20 text-slate-900 dark:text-white shadow-sm transition-all"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Ends At</label>
-                        <input
-                          type="time"
-                          value={newOverrideEnd}
-                          onChange={(e) => setNewOverrideEnd(e.target.value)}
-                          className="w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-2xl text-base font-semibold p-4 focus:ring-4 focus:ring-primary/20 text-slate-900 dark:text-white shadow-sm transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    <Button
-                      variant="primary"
-                      onClick={handleAddOverride}
-                      disabled={isAddingOverride || !newOverrideDate}
-                      className="w-full rounded-2xl py-6 font-bold uppercase tracking-widest shadow-xl shadow-primary/20"
-                    >
-                      {isAddingOverride ? "Publishing..." : "Add to Schedule"}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* List */}
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between px-2">
-                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Your Active Slots</h4>
-                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{overrides.length} Total</span>
-                  </div>
-
-                  {overrides.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 px-8 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10">
-                      <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600 mb-4">
-                        <Icon name="calendar" size={32} />
-                      </div>
-                      <p className="text-sm text-slate-500 font-bold">No custom dates published</p>
-                      <p className="text-xs text-slate-400 mt-1 max-w-[200px] text-center">Start by adding a specific date to the left.</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-4 max-h-[500px] overflow-y-auto pr-3 custom-scrollbar">
-                      {overrides.map((override) => (
-                        <div key={override.id} className="group relative p-5 rounded-[1.5rem] bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 hover:ring-primary/50 hover:shadow-lg transition-all duration-300">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="flex flex-col items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 text-primary font-bold">
-                                <span className="text-[10px] uppercase">{new Date(override.date).toLocaleDateString([], { month: 'short' })}</span>
-                                <span className="text-lg leading-none">{new Date(override.date).getDate()}</span>
-                              </div>
-                              <div>
-                                <p className="text-base font-bold text-slate-900 dark:text-white">
-                                  {new Date(override.date).toLocaleDateString([], { weekday: 'long' })}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Icon name="clock" size={14} className="text-slate-400" />
-                                  <span className="text-sm font-semibold text-slate-500">
-                                    {override.startTime} — {override.endTime}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => handleDeleteOverride(override.id)}
-                              className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-all opacity-0 group-hover:opacity-100"
-                            >
-                              <Icon name="trash" size={20} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.55fr_1fr]">
+        <Card className="rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+          <div className="space-y-6 p-6 lg:p-8">
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold text-slate-900">Availability schedule</h2>
+              <p className="text-sm text-slate-500">Choose a date, tap the 30-minute times you want open, then publish them.</p>
             </div>
-          </Card>
-        </div>
 
-        <div className="space-y-8">
-          {/* Simplified Tips */}
-          <div className="rounded-[2.5rem] bg-indigo-50 dark:bg-indigo-900/10 p-8 border border-indigo-100 dark:border-indigo-900/30 shadow-sm">
-            <h4 className="text-lg font-bold text-indigo-900 dark:text-indigo-300 mb-6 flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-white dark:bg-indigo-900/50 shadow-sm">
-                <Icon name="help" size={20} className="text-indigo-600 dark:text-indigo-400" />
-              </div>
-              How it works
-            </h4>
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <p className="text-sm font-bold text-indigo-900 dark:text-indigo-300">Absolute Transparency</p>
-                <p className="text-xs text-indigo-700/70 dark:text-indigo-400/70 leading-relaxed font-medium">
-                  We have disabled automatic slot generation. Only the dates and times you explicitly list here will be visible to patients.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm font-bold text-indigo-900 dark:text-indigo-300">No "Ghost" Slots</p>
-                <p className="text-xs text-indigo-700/70 dark:text-indigo-400/70 leading-relaxed font-medium">
-                  Deleting an entry here removes it instantly from the booking page. This ensures you are never booked for a time you aren't actually working.
-                </p>
-              </div>
-            </div>
-          </div>
+            <div className="grid gap-3 lg:grid-cols-[300px_1fr]">
+              <label className="space-y-2">
+                <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Clinic date</span>
+                <input
+                  type="date"
+                  min={formatDateInput(new Date())}
+                  value={selectedDate}
+                  onChange={(event) => setSelectedDate(event.target.value)}
+                  className="h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold text-slate-700 outline-none ring-0 transition focus:border-[#46dd63] focus:shadow-[0_0_0_4px_rgba(70,221,99,0.14)]"
+                />
+              </label>
 
-          <Card className="rounded-[2.5rem] border-none shadow-xl ring-1 ring-slate-200 dark:ring-slate-800 p-8 bg-[var(--color-surface)]">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h3 className="font-bold text-slate-900 dark:text-white text-xl tracking-tight">Visit Ledger</h3>
-                <p className="text-sm text-slate-500 font-medium">Scheduled appointments.</p>
-              </div>
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/50 text-slate-400">
-                <Icon name="calendar" size={20} />
-              </div>
+              <button
+                type="button"
+                onClick={handleSaveSelectedSlots}
+                disabled={savingSlots}
+                className="mt-auto flex h-14 items-center justify-center rounded-2xl bg-[#46dd63] px-5 text-base font-bold text-white shadow-lg shadow-[#46dd63]/25 transition hover:bg-[#36cf54] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {savingSlots ? "Saving selected slots..." : "Open selected slots"}
+              </button>
             </div>
-            
-            <div className="space-y-6">
-              {loading ? (
-                <div className="py-16 flex flex-col items-center justify-center text-slate-400">
-                  <div className="animate-spin rounded-full h-10 w-10 border-4 border-slate-100 border-t-primary mb-4" />
-                  <p className="text-xs font-bold uppercase tracking-widest">Syncing Ledger...</p>
-                </div>
-              ) : upcomingBookedDays.length === 0 ? (
-                <div className="py-16 text-center rounded-[2.5rem] border-2 border-dashed border-slate-100 dark:border-slate-800/50">
-                  <Icon name="calendar" className="mx-auto w-12 h-12 text-slate-200 dark:text-slate-800 mb-4" />
-                  <p className="text-sm text-slate-400 font-bold uppercase tracking-widest">Clear Ledger</p>
+
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+              {timeOptions.map((time) => {
+                const isSelected = selectedSlots.includes(time);
+                const isBooked = bookedSlotStarts.has(time);
+                const isPast = pastSlotStarts.has(time);
+                const disabled = isBooked || isPast;
+
+                return (
+                  <button
+                    key={time}
+                    type="button"
+                    onClick={() => toggleSlot(time)}
+                    disabled={disabled}
+                    className={[
+                      "h-12 rounded-2xl border text-base font-bold transition",
+                      isSelected
+                        ? "border-[#194ea6] bg-[#1d56b6] text-white shadow-sm"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-[#b6d8ff] hover:bg-[#f6fbff]",
+                      isBooked ? "cursor-not-allowed border-[#ffd9c2] bg-[#fff5ee] text-[#c67136]" : "",
+                      isPast ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300" : "",
+                    ].join(" ")}
+                  >
+                    {time}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex flex-col gap-3 rounded-2xl bg-slate-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm font-medium text-slate-500">
+                <span className="font-bold text-slate-800">{selectedSlots.length}</span> slots selected to open.
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedSlots([])}
+                className="text-sm font-semibold text-slate-500 transition hover:text-slate-800"
+              >
+                Clear selection
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {selectedRangesPreview.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-5 text-sm text-slate-400">
+                  Select one or more 30-minute buttons to build this day&apos;s patient-bookable windows.
                 </div>
               ) : (
-                upcomingBookedDays.map((group) => (
-                  <div key={group.key} className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">{group.label}</span>
-                      <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800/50" />
-                    </div>
-                    {group.bookings.map((booking: ProviderBooking) => (
-                      <div key={booking.id} className="p-5 rounded-[1.5rem] bg-slate-50/50 dark:bg-slate-900/20 ring-1 ring-slate-100 dark:ring-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:shadow-xl hover:ring-primary/20 transition-all duration-300">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                              {booking.patientName?.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="text-base font-bold text-slate-900 dark:text-white leading-none">{booking.patientName}</p>
-                              <div className="flex items-center gap-1.5 mt-2 text-slate-500">
-                                <Icon name="clock" size={12} />
-                                <span className="text-xs font-semibold tracking-tight">
-                                  {booking.preferredTime}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <Badge variant={bookingStatusVariant[booking.status]} className="font-bold uppercase text-[9px] tracking-widest px-3 py-1 rounded-full">
-                            {booking.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
+                selectedRangesPreview.map((range) => (
+                  <div
+                    key={`${range.startTime}-${range.endTime}`}
+                    className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-700"
+                  >
+                    <span>{selectedDate}</span>
+                    <span>{formatRangeLabel(range.startTime, range.endTime)}</span>
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        </Card>
+
+        <div className="space-y-6">
+          <Card className="rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+            <div className="space-y-5 p-6">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Published windows</h3>
+                <p className="text-sm text-slate-500">Dates and time ranges currently visible to patients.</p>
+              </div>
+
+              <div className="space-y-3">
+                {publishedRanges.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-400">
+                    No slot windows published yet.
+                  </div>
+                ) : (
+                  publishedRanges.map((override) => (
+                    <div
+                      key={override.id}
+                      className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-700"
+                    >
+                      <span>{override.date.slice(0, 10)}</span>
+                      <span>{formatRangeLabel(override.startTime as string, override.endTime as string)}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </Card>
+
+          <Card className="rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+            <div className="space-y-6 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Visit ledger</h3>
+                  <p className="text-sm text-slate-500">Scheduled appointments.</p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-3 text-slate-400">
+                  <Icon name="calendar" size={20} />
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+                    <div className="mb-4 h-10 w-10 animate-spin rounded-full border-4 border-slate-100 border-t-[#46dd63]" />
+                    <p className="text-xs font-bold uppercase tracking-[0.2em]">Loading schedule...</p>
+                  </div>
+                ) : upcomingBookedDays.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-400">
+                    No upcoming appointments found.
+                  </div>
+                ) : (
+                  upcomingBookedDays.map((group) => (
+                    <div key={group.key} className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                          {group.label}
+                        </span>
+                        <div className="h-px flex-1 bg-slate-100" />
+                      </div>
+
+                      {group.bookings.map((booking: ProviderBooking) => (
+                        <div
+                          key={booking.id}
+                          className="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-slate-900">{booking.patientName}</p>
+                            <div className="mt-1 flex items-center gap-2 text-xs font-medium text-slate-500">
+                              <Icon name="clock" size={12} />
+                              <span>{booking.preferredTime}</span>
+                            </div>
+                          </div>
+
+                          <Badge variant={bookingStatusVariant[booking.status]} className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em]">
+                            {booking.status}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </Card>
         </div>

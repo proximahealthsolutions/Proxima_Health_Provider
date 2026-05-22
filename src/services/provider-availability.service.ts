@@ -36,6 +36,29 @@ export type WeeklyAvailabilityResponse = {
   days: WeeklyAvailabilityDay[];
 };
 
+export type ProviderDateSlot = {
+  startTime: string;
+  endTime: string;
+  startAt: string;
+  endAt: string;
+  isOpen: boolean;
+  isBooked: boolean;
+  isPast: boolean;
+  isSelectable: boolean;
+};
+
+export type ProviderDateSlotsResponse = {
+  providerId: string;
+  date: string;
+  timezone: string;
+  slotMinutes: number;
+  slots: ProviderDateSlot[];
+  ranges: Array<{
+    startTime: string;
+    endTime: string;
+  }>;
+};
+
 export async function getWeeklyAvailability(): Promise<WeeklyAvailabilityResponse> {
   const resp = await fetchApi("/providers/schedule/weekly");
   return resp && typeof resp === "object" && "days" in resp ? resp : { timezone: "UTC", days: [] };
@@ -78,6 +101,26 @@ export async function createAvailabilityRule(payload: {
 export async function getAvailabilityOverrides(): Promise<AvailabilityOverride[]> {
   const resp = await fetchApi("/providers/schedule/overrides");
   return Array.isArray(resp) ? resp : [];
+}
+
+export async function getProviderDateSlots(date: string, slotMinutes = 30): Promise<ProviderDateSlotsResponse> {
+  const query = new URLSearchParams({
+    date,
+    slotMinutes: String(slotMinutes),
+  });
+  return fetchApi(`/providers/schedule/date-slots?${query.toString()}`);
+}
+
+export async function saveProviderDateSlots(payload: {
+  date: string;
+  slotMinutes?: number;
+  slots: string[];
+  note?: string;
+}): Promise<ProviderDateSlotsResponse> {
+  return fetchApi("/providers/schedule/date-slots", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function createAvailabilityOverride(payload: {
