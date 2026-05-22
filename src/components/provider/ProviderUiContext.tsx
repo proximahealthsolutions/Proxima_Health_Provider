@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { ProviderPage } from "@/types";
+import type { PatientRow, ProviderPage } from "@/types";
 
 export type ProviderChatIntent = {
   appointmentId: string;
@@ -11,6 +11,9 @@ export type ProviderChatIntent = {
 interface ProviderUiActions {
   navigateTo: (page: ProviderPage) => void;
   openChat: (appointmentId: string, action?: "chat" | "call") => void;
+  openPatientWorkspace: (patient: PatientRow, page?: ProviderPage) => void;
+  closePatientWorkspace: () => void;
+  patientWorkspace: PatientRow | null;
   notify: (message: string) => void;
   chatIntent: ProviderChatIntent | null;
   clearChatIntent: () => void;
@@ -34,6 +37,9 @@ export function useProviderUi() {
     context ?? {
       navigateTo: () => {},
       openChat: () => {},
+      openPatientWorkspace: () => {},
+      closePatientWorkspace: () => {},
+      patientWorkspace: null,
       notify: () => {},
       chatIntent: null,
       clearChatIntent: () => {},

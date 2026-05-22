@@ -5,6 +5,7 @@ import Card, { CardHeader } from "@/components/shared/Card";
 import Badge from "@/components/shared/Badge";
 import Button from "@/components/shared/Button";
 import RightDrawer from "@/components/shared/RightDrawer";
+import { useProviderUi } from "@/components/provider/ProviderUiContext";
 import {
   LabPriority,
   LabStatus,
@@ -25,6 +26,7 @@ import {
 } from "@/services/provider-patients.service";
 
 export default function LabOrdersPage() {
+  const { patientWorkspace } = useProviderUi();
   const [rows, setRows] = useState<ProviderLabOrder[]>([]);
   const [showDrawer, setShowDrawer] = useState(false);
   const [editingRow, setEditingRow] = useState<ProviderLabOrder | null>(null);
@@ -47,6 +49,10 @@ export default function LabOrdersPage() {
     );
   }, []);
 
+  const visibleRows = patientWorkspace
+    ? rows.filter((row) => row.patientId === patientWorkspace.id)
+    : rows;
+
   function closeDrawer() {
     setShowDrawer(false);
     setEditingRow(null);
@@ -59,7 +65,7 @@ export default function LabOrdersPage() {
 
   function openCreateDrawer() {
     setEditingRow(null);
-    setPatientId("");
+    setPatientId(patientWorkspace?.id || "");
     setTest("");
     setPriority("Routine");
     setStatus("Processing");
@@ -98,8 +104,6 @@ export default function LabOrdersPage() {
     closeDrawer();
   }
 
-  const urgentCount = rows.filter((r) => r.priority === "Urgent").length;
-
   function downloadFile(row: ProviderLabOrder) {
     if (!row.fileUrl) return;
     if (typeof window !== "undefined") {
@@ -111,8 +115,14 @@ export default function LabOrdersPage() {
     <div className="flex flex-col gap-6">
       <div className="rounded-2xl p-6 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-[var(--color-on-primary)]">Lab Orders</h2>
-          <p className="text-[var(--color-primary-contrast-soft)] text-sm mt-1">Create lab orders and update results as they progress.</p>
+          <h2 className="text-xl font-bold text-[var(--color-on-primary)]">
+            {patientWorkspace ? `${patientWorkspace.name} Lab Results` : "Lab Orders"}
+          </h2>
+          <p className="text-[var(--color-primary-contrast-soft)] text-sm mt-1">
+            {patientWorkspace
+              ? "All lab work shown here is tied to the selected patient only."
+              : "Create lab orders and update results as they progress."}
+          </p>
         </div>
         <Button
           onClick={openCreateDrawer}
@@ -123,7 +133,7 @@ export default function LabOrdersPage() {
       </div>
 
       <Card>
-        <CardHeader title="Order Tracking" actions={<Badge variant="orange">{urgentCount} Urgent</Badge>} />
+        <CardHeader title="Order Tracking" actions={<Badge variant="orange">{visibleRows.filter((r) => r.priority === "Urgent").length} Urgent</Badge>} />
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -136,7 +146,7 @@ export default function LabOrdersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-border)]">
-              {rows.map((o) => (
+              {visibleRows.map((o) => (
                 <tr key={o.id} className="hover:bg-[var(--color-surface-soft)] transition-colors">
                   <td className="px-5 py-3 font-semibold text-[var(--color-text)] whitespace-nowrap">
                     {formatPatientName(patientMap[o.patientId])}
@@ -209,6 +219,7 @@ export default function LabOrdersPage() {
             <select
               value={patientId}
               onChange={(e) => setPatientId(e.target.value)}
+              disabled={Boolean(patientWorkspace)}
               className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
             >
               <option value="">Select patient</option>

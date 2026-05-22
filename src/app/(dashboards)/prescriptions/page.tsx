@@ -5,6 +5,7 @@ import Card, { CardHeader } from "@/components/shared/Card";
 import Button from "@/components/shared/Button";
 import Badge from "@/components/shared/Badge";
 import RightDrawer from "@/components/shared/RightDrawer";
+import { useProviderUi } from "@/components/provider/ProviderUiContext";
 import {
   PrescriptionStatus,
   ProviderPatientDirectoryEntry,
@@ -23,6 +24,7 @@ import {
 } from "@/services/provider-patients.service";
 
 export default function PrescriptionsPage() {
+  const { patientWorkspace } = useProviderUi();
   const [rows, setRows] = useState<ProviderPrescription[]>([]);
   const [showDrawer, setShowDrawer] = useState(false);
   const [editingRow, setEditingRow] = useState<ProviderPrescription | null>(null);
@@ -47,6 +49,10 @@ export default function PrescriptionsPage() {
     );
   }, []);
 
+  const visibleRows = patientWorkspace
+    ? rows.filter((row) => row.patientId === patientWorkspace.id)
+    : rows;
+
   function closeDrawer() {
     setShowDrawer(false);
     setEditingRow(null);
@@ -61,7 +67,7 @@ export default function PrescriptionsPage() {
 
   function openCreateDrawer() {
     setEditingRow(null);
-    setPatientId("");
+    setPatientId(patientWorkspace?.id || "");
     setMedication("");
     setDosage("");
     setFrequency("");
@@ -117,8 +123,14 @@ export default function PrescriptionsPage() {
     <div className="flex flex-col gap-6">
       <div className="rounded-2xl p-6 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-[var(--color-on-primary)]">Prescriptions</h2>
-          <p className="text-[var(--color-primary-contrast-soft)] text-sm mt-1">Create and update prescriptions tied to patient records.</p>
+          <h2 className="text-xl font-bold text-[var(--color-on-primary)]">
+            {patientWorkspace ? `${patientWorkspace.name} Prescriptions` : "Prescriptions"}
+          </h2>
+          <p className="text-[var(--color-primary-contrast-soft)] text-sm mt-1">
+            {patientWorkspace
+              ? "You are working inside one patient record only."
+              : "Create and update prescriptions tied to patient records."}
+          </p>
         </div>
         <Button
           onClick={openCreateDrawer}
@@ -129,7 +141,7 @@ export default function PrescriptionsPage() {
       </div>
 
       <Card>
-        <CardHeader title="Medication List" subtitle={`${rows.length} therapy records`} />
+        <CardHeader title="Medication List" subtitle={`${visibleRows.length} therapy records`} />
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -142,7 +154,7 @@ export default function PrescriptionsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-border)]">
-              {rows.map((p) => (
+              {visibleRows.map((p) => (
                 <tr key={p.id} className="hover:bg-[var(--color-surface-soft)] transition-colors">
                   <td className="px-5 py-3 font-semibold text-[var(--color-text)] whitespace-nowrap">
                     {formatPatientName(patientMap[p.patientId])}
@@ -201,6 +213,7 @@ export default function PrescriptionsPage() {
             <select
               value={patientId}
               onChange={(e) => setPatientId(e.target.value)}
+              disabled={Boolean(patientWorkspace)}
               className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
             >
               <option value="">Select patient</option>
@@ -278,4 +291,3 @@ export default function PrescriptionsPage() {
     </div>
   );
 }
-

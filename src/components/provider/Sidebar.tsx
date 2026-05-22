@@ -10,22 +10,13 @@ import { logoutProviderSession } from "@/lib/session";
 
 const navSections: ProviderNavSection[] = [
   {
-    label: "Clinical",
+    label: "Provider",
     items: [
       { icon: "home", label: "Dashboard",    page: "overview" },
+      { icon: "clipboard", label: "Schedule", page: "schedule" },
       { icon: "users", label: "My Patients",  page: "patients" },
       { icon: "bell", label: "Notifications", page: "notifications" },
       { icon: "calendar", label: "Bookings", page: "bookings" },
-      { icon: "message", label: "Messages",     page: "messages" },
-      { icon: "clipboard", label: "Schedule", page: "schedule" },
-    ],
-  },
-  {
-    label: "Records",
-    items: [
-      { icon: "clipboard", label: "Patient Notes",  page: "notes" },
-      { icon: "pill", label: "Prescriptions",  page: "prescriptions" },
-      { icon: "flask", label: "Lab Orders",     page: "laborders" },
     ],
   },
   {
@@ -36,12 +27,29 @@ const navSections: ProviderNavSection[] = [
   },
 ];
 
+const patientWorkspaceSections: ProviderNavSection[] = [
+  {
+    label: "Patient Workspace",
+    items: [
+      { icon: "home", label: "Dashboard", page: "patient-overview" },
+      { icon: "message", label: "Messages", page: "patient-messages" },
+      { icon: "clipboard", label: "Patient Notes", page: "patient-notes" },
+      { icon: "pill", label: "Prescriptions", page: "patient-prescriptions" },
+      { icon: "flask", label: "Lab Results", page: "patient-laborders" },
+      { icon: "activity", label: "Vital Trends", page: "patient-vitals" },
+      { icon: "receipt", label: "History", page: "patient-history" },
+    ],
+  },
+];
+
 export default function ProviderSidebar({
   activePage,
   onNavigate,
   isOpen,
   onClose,
   profile,
+  patientWorkspace,
+  onCloseWorkspace,
 }: ProviderSidebarProps) {
   const [patientCount, setPatientCount] = useState<number | null>(null);
   const [bookingCount, setBookingCount] = useState<number | null>(null);
@@ -99,9 +107,12 @@ export default function ProviderSidebar({
 
   const sections = useMemo<ProviderNavSection[]>(
     () =>
-      navSections.map((section) => ({
+      (patientWorkspace ? patientWorkspaceSections : navSections).map((section) => ({
         ...section,
         items: section.items.map((item) => {
+          if (patientWorkspace) {
+            return item;
+          }
           if (item.page === "patients") {
             return { ...item, badge: patientCount !== null ? `${patientCount}` : undefined };
           }
@@ -125,7 +136,7 @@ export default function ProviderSidebar({
           return item;
         }),
       })),
-    [bookingCount, notificationCount, patientCount]
+    [bookingCount, notificationCount, patientCount, patientWorkspace]
   );
 
   function handleLogout() {
@@ -178,11 +189,34 @@ export default function ProviderSidebar({
         </div>
 
         {/* Role tag */}
-        <div className="relative mx-4 mt-4 px-3 py-1.5 rounded-lg bg-[var(--color-primary-soft)] text-[var(--color-accent)] text-xs font-semibold">
-          <span className="inline-flex items-center gap-2">
-            <Icon name="medical" className="w-3.5 h-3.5" />
-            Physician Portal
-          </span>
+        <div className="relative mx-4 mt-4 rounded-lg bg-[var(--color-primary-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--color-accent)]">
+          {patientWorkspace ? (
+            <div className="space-y-3 py-1">
+              <div className="inline-flex items-center gap-2">
+                <Icon name="users" className="h-3.5 w-3.5" />
+                Patient Workspace
+              </div>
+              <div className="rounded-xl border border-[color:var(--color-primary-soft-border)] bg-[var(--color-surface)] px-3 py-3">
+                <div className="text-sm font-semibold text-[var(--color-text)]">{patientWorkspace.name}</div>
+                <div className="mt-1 text-[11px] text-[var(--color-text-muted)]">
+                  {patientWorkspace.patientRecordNumber || patientWorkspace.email || "Patient record"}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onCloseWorkspace}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[color:var(--color-primary-soft-border)] bg-[var(--color-surface)] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary-soft)]"
+              >
+                <Icon name="close" size={14} />
+                Exit patient
+              </button>
+            </div>
+          ) : (
+            <span className="inline-flex items-center gap-2">
+              <Icon name="medical" className="w-3.5 h-3.5" />
+              Physician Portal
+            </span>
+          )}
         </div>
 
         {/* Nav */}

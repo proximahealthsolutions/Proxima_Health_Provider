@@ -98,6 +98,15 @@ function expandRangeToSlotStarts(startTime: string, endTime: string) {
   return slots;
 }
 
+function formatDateLabel(value: string) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString([], {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export default function SchedulePage() {
   const timeOptions = useMemo(() => buildTimeOptions(), []);
   const [bookings, setBookings] = useState<ProviderBooking[]>([]);
@@ -176,6 +185,17 @@ export default function SchedulePage() {
 
   const activeDatesCount = useMemo(() => {
     return new Set(publishedRanges.map((override) => override.date.slice(0, 10))).size;
+  }, [publishedRanges]);
+
+  const publishedRangesByDate = useMemo(() => {
+    return publishedRanges.reduce<Record<string, AvailabilityOverride[]>>((acc, override) => {
+      const key = override.date.slice(0, 10);
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(override);
+      return acc;
+    }, {});
   }, [publishedRanges]);
 
   const bookedSlotStarts = useMemo(() => {
@@ -282,18 +302,69 @@ export default function SchedulePage() {
     setOverrides(updated || []);
   }
 
-  async function handleSaveSelectedSlots() {
+  async function saveSlotsForDate(date: string, slots: string[], successMessage: string) {
     setSavingSlots(true);
     try {
       await saveProviderDateSlots({
-        date: selectedDate,
+        date,
         slotMinutes: SLOT_MINUTES,
-        slots: selectedSlots,
+        slots,
       });
       await refreshOverrides();
-      showFlash(selectedSlots.length ? "Selected slots opened for patients." : "Selected date cleared.");
+      if (date === selectedDate) {
+        setSelectedSlots(slots);
+      }
+      showFlash(successMessage);
     } catch (err: any) {
-      showFlash(err?.message || "Failed to save selected slots.");
+      showFlash(err?.message || "Failed to update published windows.");
+    } finally {
+      setSavingSlots(false);
+    }
+  }
+
+  async function handleSaveSelectedSlots() {
+    await saveSlotsForDate(
+      selectedDate,
+      selectedSlots,
+      selectedSlots.length ? "Selected slots opened for patients." : "Selected date cleared."
+    );
+  }
+
+  async function handleDeletePublishedRange(override: AvailabilityOverride) {
+    const date = override.date.slice(0, 10);
+    const remainingSlots = (publishedRangesByDate[date] || [])
+      .filter((item) => item.id !== override.id)
+      .flatMap((item) => expandRangeToSlotStarts(item.startTime as string, item.endTime as string));
+
+    await saveSlotsForDate(date, remainingSlots, "Published window removed.");
+  }
+
+  async function handleClearDate(date: string) {
+    await saveSlotsForDate(date, [], `${formatDateLabel(date)} cleared.`);
+  }
+
+  async function handleClearAllPublished() {
+    const dates = Object.keys(publishedRangesByDate);
+    if (dates.length === 0) {
+      return;
+    }
+
+    setSavingSlots(true);
+    try {
+      for (const date of dates) {
+        await saveProviderDateSlots({
+          date,
+          slotMinutes: SLOT_MINUTES,
+          slots: [],
+        });
+      }
+      await refreshOverrides();
+      if (dates.includes(selectedDate)) {
+        setSelectedSlots([]);
+      }
+      showFlash("All published windows cleared.");
+    } catch (err: any) {
+      showFlash(err?.message || "Failed to clear published windows.");
     } finally {
       setSavingSlots(false);
     }
@@ -485,9 +556,20 @@ export default function SchedulePage() {
         <div className="space-y-6">
           <Card className="rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
             <div className="space-y-5 p-6">
-              <div>
-                <h3 className="text-lg font-bold text-[var(--color-text)]">Published windows</h3>
-                <p className="text-sm text-[var(--color-text-muted)]">Dates and time ranges currently visible to patients.</p>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-[var(--color-text)]">Published windows</h3>
+                  <p className="text-sm text-[var(--color-text-muted)]">Dates and time ranges currently visible to patients.</p>
+                </div>
+                <button
+                  type="button"
+                  disabled={savingSlots || publishedRanges.length === 0}
+                  onClick={handleClearAllPublished}
+                  className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-danger-soft-border)] bg-[var(--color-danger-soft)] px-3 py-2 text-xs font-semibold text-[var(--color-danger)] transition hover:bg-[var(--color-danger-soft)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Icon name="trash" size={14} />
+                  Clear all
+                </button>
               </div>
 
               <div className="space-y-3">
@@ -496,13 +578,53 @@ export default function SchedulePage() {
                     No slot windows published yet.
                   </div>
                 ) : (
-                  publishedRanges.map((override) => (
+                  Object.entries(publishedRangesByDate).map(([date, rows]) => (
                     <div
-                      key={override.id}
-                      className="flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-4 text-sm font-semibold text-[var(--color-text)]"
+                      key={date}
+                      className="rounded-[1.6rem] border border-[var(--color-border)] bg-[var(--color-surface-soft)]/80 p-3 shadow-sm"
                     >
-                      <span>{override.date.slice(0, 10)}</span>
-                      <span>{formatRangeLabel(override.startTime as string, override.endTime as string)}</span>
+                      <div className="mb-3 flex items-center justify-between gap-3 px-2">
+                        <div>
+                          <div className="text-sm font-bold text-[var(--color-text)]">{formatDateLabel(date)}</div>
+                          <div className="text-xs text-[var(--color-text-muted)]">{date}</div>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={savingSlots}
+                          onClick={() => handleClearDate(date)}
+                          className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-text-muted)] transition hover:text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Icon name="close" size={14} />
+                          Clear date
+                        </button>
+                      </div>
+
+                      <div className="space-y-2">
+                        {rows.map((override) => (
+                          <div
+                            key={override.id}
+                            className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--color-primary-soft-border)] bg-[var(--color-surface)] px-4 py-3 text-sm shadow-sm"
+                          >
+                            <div className="min-w-0">
+                              <div className="font-semibold text-[var(--color-text)]">
+                                {formatRangeLabel(override.startTime as string, override.endTime as string)}
+                              </div>
+                              <div className="mt-1 text-xs text-[var(--color-text-muted)]">
+                                {timezone}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={savingSlots}
+                              onClick={() => handleDeletePublishedRange(override)}
+                              className="rounded-xl border border-[var(--color-danger-soft-border)] bg-[var(--color-danger-soft)] p-2 text-[var(--color-danger)] transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
+                              aria-label={`Delete ${override.startTime}-${override.endTime} on ${date}`}
+                            >
+                              <Icon name="trash" size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))
                 )}

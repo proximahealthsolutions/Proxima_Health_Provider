@@ -74,7 +74,7 @@ export default function MessagesPage() {
     appointmentId: string;
     callType: "VIDEO" | "AUDIO";
   } | null>(null);
-  const { chatIntent, clearChatIntent, notify } = useProviderUi();
+  const { chatIntent, clearChatIntent, notify, patientWorkspace } = useProviderUi();
   const { ensureZego, setOutgoingHandlers } = useProviderCall();
 
   useEffect(() => {
@@ -98,17 +98,27 @@ export default function MessagesPage() {
     }
   }, [chatIntent, clearChatIntent]);
 
+  useEffect(() => {
+    setActiveThreadId(null);
+    setMessages([]);
+    setMobileChatOpen(false);
+  }, [patientWorkspace?.id]);
+
   const activeStatuses = useMemo(() => new Set(["REQUESTED", "ACCEPTED", "IN_PROGRESS"]), []);
   const historyStatuses = useMemo(() => new Set(["ENDED_BY_PROVIDER", "CONFIRMED", "RESOLVED"]), []);
-  const activeThreads = useMemo(() => threads.filter((t) => activeStatuses.has(t.status)), [threads, activeStatuses]);
-  const historyThreads = useMemo(() => threads.filter((t) => historyStatuses.has(t.status)), [threads, historyStatuses]);
+  const scopedThreads = useMemo(
+    () => (patientWorkspace?.id ? threads.filter((t) => t.patientId === patientWorkspace.id) : threads),
+    [threads, patientWorkspace?.id]
+  );
+  const activeThreads = useMemo(() => scopedThreads.filter((t) => activeStatuses.has(t.status)), [scopedThreads, activeStatuses]);
+  const historyThreads = useMemo(() => scopedThreads.filter((t) => historyStatuses.has(t.status)), [scopedThreads, historyStatuses]);
   const visibleThreads = threadView === "active" ? activeThreads : historyThreads;
 
   useEffect(() => {
-    if (!threads.length || activeThreadId) return;
+    if (!scopedThreads.length || activeThreadId) return;
     const next = activeThreads[0] ?? historyThreads[0];
     if (next) setActiveThreadId(next.id);
-  }, [threads, activeThreadId, activeThreads, historyThreads]);
+  }, [scopedThreads, activeThreadId, activeThreads, historyThreads]);
 
   useEffect(() => {
     async function loadMe() {
@@ -243,7 +253,7 @@ export default function MessagesPage() {
     []
   );
 
-  const activeThread = threads.find((thread) => thread.id === activeThreadId) ?? null;
+  const activeThread = scopedThreads.find((thread) => thread.id === activeThreadId) ?? null;
   const typingActive = activeThreadId ? typingByThread[activeThreadId] : false;
   const onlineActive = activeThreadId ? onlineByThread[activeThreadId] : false;
 
@@ -478,7 +488,13 @@ export default function MessagesPage() {
       <div className={cn("px-4 sm:px-5 pt-4 sm:pt-5", mobile && "sticky top-0 z-10 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4")}>
         <CardHeader
           title={threadView === "active" ? "Active Conversations" : "Conversation History"}
-          subtitle={threadView === "active" ? "Requested, accepted, or live appointments" : "Ended, confirmed, or resolved"}
+            subtitle={
+              patientWorkspace
+                ? `${patientWorkspace.name} only`
+                : threadView === "active"
+                  ? "Requested, accepted, or live appointments"
+                  : "Ended, confirmed, or resolved"
+            }
           actions={
             <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => setThreadView((prev) => (prev === "active" ? "history" : "active"))}>
               {threadView === "active" ? "History" : "Active"}
@@ -489,7 +505,11 @@ export default function MessagesPage() {
       <div className={cn("px-4 pb-4 space-y-3 flex-1 overflow-y-auto", mobile && "overscroll-contain px-4 py-4")}>
         {visibleThreads.length === 0 && (
           <div className="px-3 py-10 text-center text-sm text-[var(--color-text-muted)]">
-            {threadView === "active" ? "No active patient chats yet." : "No history yet."}
+            {patientWorkspace
+              ? `No ${threadView === "active" ? "active" : "historical"} chats for this patient yet.`
+              : threadView === "active"
+                ? "No active patient chats yet."
+                : "No history yet."}
           </div>
         )}
         {visibleThreads.map((thread) => (

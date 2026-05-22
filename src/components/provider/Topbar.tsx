@@ -4,6 +4,7 @@ import Avatar from "@/components/shared/Avatar";
 import Icon from "@/components/shared/Icon";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import { ProviderTopbarProps, ProviderPage } from "@/types";
+import { useProviderUi } from "@/components/provider/ProviderUiContext";
 
 const pageTitles: Record<ProviderPage, string> = {
   overview:      "Dashboard",
@@ -16,6 +17,13 @@ const pageTitles: Record<ProviderPage, string> = {
   laborders:     "Lab Orders",
   messages:      "Messages",
   settings:      "Profile",
+  "patient-overview": "Patient Dashboard",
+  "patient-messages": "Patient Messages",
+  "patient-notes": "Patient Notes",
+  "patient-prescriptions": "Patient Prescriptions",
+  "patient-laborders": "Patient Lab Results",
+  "patient-vitals": "Patient Vitals",
+  "patient-history": "Patient History",
 };
 
 function initialsFromProfile(firstName?: string | null, lastName?: string | null) {
@@ -34,6 +42,7 @@ export default function ProviderTopbar({
   onOpenNotifications,
   profile,
 }: ProviderTopbarProps) {
+  const { patientWorkspace, closePatientWorkspace } = useProviderUi();
   const initials = initialsFromProfile(profile?.firstName, profile?.lastName);
   const displayName =
     profile?.firstName || profile?.lastName
@@ -54,8 +63,19 @@ export default function ProviderTopbar({
         <span className="font-bold text-[var(--color-text)] text-sm sm:text-base truncate">
           {pageTitles[activePage] ?? "Dashboard"}
         </span>
-        <span className="text-[var(--color-text-muted)] text-sm hidden sm:inline">— Physician Portal</span>
+        <span className="text-[var(--color-text-muted)] text-sm hidden sm:inline">
+          — {patientWorkspace ? patientWorkspace.name : "Physician Portal"}
+        </span>
       </div>
+      {patientWorkspace && (
+        <button
+          type="button"
+          onClick={closePatientWorkspace}
+          className="hidden sm:inline-flex items-center justify-center rounded-xl border border-[var(--color-border)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-soft)]"
+        >
+          Exit patient
+        </button>
+      )}
       <button
         type="button"
         onClick={onOpenNotifications}

@@ -5,6 +5,7 @@ import Card, { CardHeader } from "@/components/shared/Card";
 import Button from "@/components/shared/Button";
 import Badge from "@/components/shared/Badge";
 import RightDrawer from "@/components/shared/RightDrawer";
+import { useProviderUi } from "@/components/provider/ProviderUiContext";
 import { ProviderNote, noteTagVariant, ProviderPatientDirectoryEntry } from "@/types";
 import { createProviderNote, getProviderNotes, updateProviderNote } from "@/services/provider-notes.service";
 import {
@@ -16,6 +17,7 @@ import {
 const templates = ["Routine Follow-up", "Medication Update", "Discharge Summary", "Post-op Review"];
 
 export default function NotesPage() {
+  const { patientWorkspace } = useProviderUi();
   const [notes, setNotes] = useState<ProviderNote[]>([]);
   const [showDrawer, setShowDrawer] = useState(false);
   const [editingNote, setEditingNote] = useState<ProviderNote | null>(null);
@@ -36,6 +38,10 @@ export default function NotesPage() {
     );
   }, []);
 
+  const visibleNotes = patientWorkspace
+    ? notes.filter((note) => note.patientId === patientWorkspace.id)
+    : notes;
+
   function closeDrawer() {
     setShowDrawer(false);
     setEditingNote(null);
@@ -46,7 +52,7 @@ export default function NotesPage() {
 
   function openCreateDrawer(prefillSummary = "") {
     setEditingNote(null);
-    setPatientId("");
+    setPatientId(patientWorkspace?.id || "");
     setSummary(prefillSummary);
     setTag("General");
     setShowDrawer(true);
@@ -78,8 +84,14 @@ export default function NotesPage() {
     <div className="flex flex-col gap-6">
       <div className="rounded-2xl p-6 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-[var(--color-on-primary)]">Patient Notes</h2>
-          <p className="text-[var(--color-primary-contrast-soft)] text-sm mt-1">Create and store clinical notes tied to patient records.</p>
+          <h2 className="text-xl font-bold text-[var(--color-on-primary)]">
+            {patientWorkspace ? `${patientWorkspace.name} Notes` : "Patient Notes"}
+          </h2>
+          <p className="text-[var(--color-primary-contrast-soft)] text-sm mt-1">
+            {patientWorkspace
+              ? "Every note here belongs only to the selected patient workspace."
+              : "Create and store clinical notes tied to patient records."}
+          </p>
         </div>
         <Button
           onClick={() => openCreateDrawer()}
@@ -92,9 +104,9 @@ export default function NotesPage() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2">
           <Card>
-            <CardHeader title="Recent Notes" subtitle={`${notes.length} records`} />
+            <CardHeader title="Recent Notes" subtitle={`${visibleNotes.length} records`} />
             <div className="divide-y divide-[var(--color-border)]">
-              {notes.map((n) => (
+              {visibleNotes.map((n) => (
                 <div key={n.id} className="px-5 py-4 flex flex-col sm:flex-row sm:items-start gap-3">
                   <div className="sm:min-w-44">
                     <p className="font-semibold text-[var(--color-text)]">{formatPatientName(patientMap[n.patientId])}</p>
@@ -162,6 +174,7 @@ export default function NotesPage() {
             <select
               value={patientId}
               onChange={(e) => setPatientId(e.target.value)}
+              disabled={Boolean(patientWorkspace)}
               className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] focus:outline-none focus:border-[var(--color-primary)]"
             >
               <option value="">Select patient</option>
@@ -196,4 +209,3 @@ export default function NotesPage() {
     </div>
   );
 }
-

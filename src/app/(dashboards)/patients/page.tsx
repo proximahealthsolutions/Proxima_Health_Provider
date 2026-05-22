@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import Card, { CardHeader } from "@/components/shared/Card";
 import Badge from "@/components/shared/Badge";
 import Button from "@/components/shared/Button";
@@ -12,11 +11,12 @@ import { cn } from "@/lib/utils";
 import { PatientRow, PatientFilter, riskVariant, patientStatusVariant } from "@/types";
 import { getProviderPatients } from "@/services/provider-patients.service";
 import { getProviderBookings } from "@/services/provider-bookings.service";
+import { useProviderUi } from "@/components/provider/ProviderUiContext";
 
 const FILTERS: PatientFilter[] = ["All", "Active", "High Risk", "Recent"];
 
 export default function PatientsPage() {
-  const router = useRouter();
+  const { openPatientWorkspace } = useProviderUi();
   const [activeFilter, setActiveFilter] = useState<PatientFilter>("All");
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [acceptedCount, setAcceptedCount] = useState(0);
@@ -234,9 +234,9 @@ export default function PatientsPage() {
                   <Button
                     size="sm"
                     className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-[var(--color-on-primary)]"
-                    onClick={() => router.push("/notes")}
+                    onClick={() => openPatientWorkspace(p, "patient-overview")}
                   >
-                    Note
+                    Workspace
                   </Button>
                 )}
               </div>
@@ -285,9 +285,9 @@ export default function PatientsPage() {
                         <Button
                           size="sm"
                           className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-[var(--color-on-primary)]"
-                          onClick={() => router.push("/notes")}
+                          onClick={() => openPatientWorkspace(p, "patient-overview")}
                         >
-                          Note
+                          Workspace
                         </Button>
                       )}
                     </div>
@@ -392,6 +392,15 @@ export default function PatientsPage() {
                 </div>
               </div>
             </div>
+            <Button
+              className="w-full bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:bg-[var(--color-primary-hover)]"
+              onClick={() => {
+                setDrawerOpen(false);
+                openPatientWorkspace(selectedPatient, "patient-overview");
+              }}
+            >
+              Open patient workspace
+            </Button>
           </div>
         ) : null}
       </RightDrawer>

@@ -1,3 +1,4 @@
+import { PatientRow } from "../patients.interface";
 import { ProviderPage, ProviderProfileSummary } from "./topbar.interface";
 
 // ─── Provider Sidebar ────────────────────────────────────────────────────────
@@ -21,4 +22,6 @@ export interface ProviderSidebarProps {
   isOpen:      boolean;
   onClose:     () => void;
   profile?:    ProviderProfileSummary | null;
+  patientWorkspace?: PatientRow | null;
+  onCloseWorkspace?: () => void;
 }

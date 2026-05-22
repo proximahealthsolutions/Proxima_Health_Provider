@@ -13,6 +13,9 @@ const Prescriptions = lazy(() => import("@/app/(dashboards)/prescriptions/page")
 const LabOrders = lazy(() => import("@/app/(dashboards)/laborders/page"));
 const Messages = lazy(() => import("@/app/(dashboards)/messages/page"));
 const Settings = lazy(() => import("@/app/(dashboards)/settings/page"));
+const PatientWorkspaceOverview = lazy(() => import("@/components/provider/PatientWorkspaceOverview"));
+const PatientWorkspaceVitals = lazy(() => import("@/components/provider/PatientWorkspaceVitals"));
+const PatientWorkspaceHistory = lazy(() => import("@/components/provider/PatientWorkspaceHistory"));
 
 function PageLoader() {
   return (
@@ -22,7 +25,7 @@ function PageLoader() {
   );
 }
 
-export default function ProviderPageContent({ activePage }: ProviderPageContentProps) {
+export default function ProviderPageContent({ activePage, patientWorkspace }: ProviderPageContentProps) {
   const renderPage = () => {
     switch (activePage) {
       case "overview":  return <Overview />;
@@ -35,6 +38,13 @@ export default function ProviderPageContent({ activePage }: ProviderPageContentP
       case "laborders": return <LabOrders />;
       case "messages": return <Messages />;
       case "settings": return <Settings />;
+      case "patient-overview": return <PatientWorkspaceOverview patient={patientWorkspace} />;
+      case "patient-messages": return <Messages />;
+      case "patient-notes": return <Notes />;
+      case "patient-prescriptions": return <Prescriptions />;
+      case "patient-laborders": return <LabOrders />;
+      case "patient-vitals": return <PatientWorkspaceVitals patient={patientWorkspace} />;
+      case "patient-history": return <PatientWorkspaceHistory patient={patientWorkspace} />;
       default: return <Overview />;
     }
   };

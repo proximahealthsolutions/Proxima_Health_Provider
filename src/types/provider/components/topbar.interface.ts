@@ -10,7 +10,14 @@ export type ProviderPage =
   | "prescriptions"
   | "laborders"
   | "messages"
-  | "settings";
+  | "settings"
+  | "patient-overview"
+  | "patient-messages"
+  | "patient-notes"
+  | "patient-prescriptions"
+  | "patient-laborders"
+  | "patient-vitals"
+  | "patient-history";
 
 export interface ProviderProfileSummary {
   firstName?: string | null;

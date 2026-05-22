@@ -7,7 +7,7 @@ import ProviderPageContent from "@/components/provider/Pagecontent";
 import { fetchApi } from "@/lib/api";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 import { logoutProviderSession } from "@/lib/session";
-import { ProviderPage, ProviderProfileSummary } from "@/types";
+import { PatientRow, ProviderPage, ProviderProfileSummary } from "@/types";
 import {
   ProviderChatIntent,
   ProviderUiProvider,
@@ -20,6 +20,7 @@ export default function ProviderShell() {
   const [profile, setProfile] = useState<ProviderProfileSummary | null>(null);
   const [toast, setToast] = useState("");
   const [chatIntent, setChatIntent] = useState<ProviderChatIntent | null>(null);
+  const [patientWorkspace, setPatientWorkspace] = useState<PatientRow | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -42,16 +43,25 @@ export default function ProviderShell() {
       navigateTo: (page: ProviderPage) => setActivePage(page),
       openChat: (appointmentId: string, action?: "chat" | "call") => {
         setChatIntent({ appointmentId, action });
-        setActivePage("messages");
+        setActivePage(patientWorkspace ? "patient-messages" : "messages");
+      },
+      openPatientWorkspace: (patient: PatientRow, page: ProviderPage = "patient-overview") => {
+        setPatientWorkspace(patient);
+        setActivePage(page);
+      },
+      closePatientWorkspace: () => {
+        setPatientWorkspace(null);
+        setActivePage("patients");
       },
       notify: (message: string) => {
         setToast(message);
         setTimeout(() => setToast(""), 3000);
       },
+      patientWorkspace,
       chatIntent,
       clearChatIntent: () => setChatIntent(null),
     }),
-    [chatIntent]
+    [chatIntent, patientWorkspace]
   );
 
   useInactivityLogout(() => logoutProviderSession());
@@ -67,6 +77,8 @@ export default function ProviderShell() {
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         profile={profile}
+        patientWorkspace={patientWorkspace}
+        onCloseWorkspace={actions.closePatientWorkspace}
       />
 
       {/* ── Main column ─────────────────────────────────────────────────── */}
@@ -74,7 +86,7 @@ export default function ProviderShell() {
         <ProviderTopbar
           activePage={activePage}
           onMenuToggle={() => setSidebarOpen((v) => !v)}
-          onOpenNotifications={() => setActivePage("notifications")}
+          onOpenNotifications={() => setActivePage(patientWorkspace ? "patient-messages" : "notifications")}
           profile={profile}
         />
         <main
@@ -82,7 +94,7 @@ export default function ProviderShell() {
           className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain"
         >
           <div className="px-3 py-3 sm:px-5 sm:py-5 lg:p-6 [padding-bottom:calc(env(safe-area-inset-bottom)+1rem)]">
-            <ProviderPageContent activePage={activePage} />
+            <ProviderPageContent activePage={activePage} patientWorkspace={patientWorkspace} />
           </div>
         </main>
       </div>
