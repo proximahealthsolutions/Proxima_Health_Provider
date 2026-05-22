@@ -183,9 +183,9 @@ export default function SchedulePage() {
     bookings
       .filter((booking) => BOOKED_DAY_STATUSES.has(booking.status))
       .forEach((booking) => {
-        if (!booking.startAt || !booking.endAt) return;
+        if (!booking.startAt || !booking.endAtIso) return;
         const start = getZonedDateParts(booking.startAt, timezone);
-        const end = getZonedDateParts(booking.endAt, timezone);
+        const end = getZonedDateParts(booking.endAtIso, timezone);
         if (start.date !== selectedDate) return;
 
         let cursor = start.time;
