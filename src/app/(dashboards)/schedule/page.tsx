@@ -336,22 +336,22 @@ export default function SchedulePage() {
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6 p-4 lg:p-8">
-      <div className="overflow-hidden rounded-[2.25rem] border border-slate-200 bg-[radial-gradient(circle_at_top_right,_rgba(70,221,99,0.18),_transparent_35%),linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-8 shadow-sm">
+      <div className="overflow-hidden rounded-[2.25rem] border border-[var(--color-border)] bg-[radial-gradient(circle_at_top_right,_var(--color-accent-soft),_transparent_35%),linear-gradient(180deg,var(--color-surface)_0%,var(--color-surface-soft)_100%)] p-8 shadow-sm">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#c9f2d2] bg-[#effcf2] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1e8a36]">
-              <span className="h-2 w-2 rounded-full bg-[#3fd85b]" />
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--color-accent-soft-border)] bg-[var(--color-accent-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-strong)]">
+              <span className="h-2 w-2 rounded-full bg-[var(--color-accent)]" />
               Provider schedule
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 lg:text-4xl">Availability schedule</h1>
-            <p className="mt-3 text-sm font-medium text-slate-600 lg:text-base">
+            <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text)] lg:text-4xl">Availability schedule</h1>
+            <p className="mt-3 text-sm font-medium text-[var(--color-text-muted)] lg:text-base">
               Approved physicians can create patient-bookable 30-minute slot windows.
             </p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-              <div className="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 shadow-sm">
+              <div className="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
                 <Icon name="clock" size={12} />
                 Timezone
               </div>
@@ -359,7 +359,7 @@ export default function SchedulePage() {
                 value={timezone}
                 disabled={savingTimezone}
                 onChange={(event) => handleSaveTimezone(event.target.value)}
-                className="bg-transparent text-sm font-semibold text-slate-700 outline-none"
+                className="bg-transparent text-sm font-semibold text-[var(--color-text)] outline-none"
               >
                 {COMMON_TIMEZONES.map((tz) => (
                   <option key={tz} value={tz}>
@@ -369,8 +369,8 @@ export default function SchedulePage() {
               </select>
             </div>
 
-            <div className="rounded-2xl bg-[#46dd63] px-5 py-4 text-white shadow-lg shadow-[#46dd63]/25">
-              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/75">Active dates</div>
+            <div className="rounded-2xl bg-[var(--color-accent)] px-5 py-4 text-[var(--color-on-primary)] shadow-lg">
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-80">Active dates</div>
               <div className="mt-1 text-3xl font-bold leading-none">{activeDatesCount}</div>
             </div>
           </div>
@@ -378,36 +378,36 @@ export default function SchedulePage() {
       </div>
 
       {flashMessage ? (
-        <div className="flex items-center justify-between rounded-2xl border border-[#caecd3] bg-[#f1fbf4] px-4 py-3 text-sm font-semibold text-[#1b7d32] shadow-sm">
+        <div className="flex items-center justify-between rounded-2xl border border-[var(--color-success-soft)] bg-[var(--color-success-soft)] px-4 py-3 text-sm font-semibold text-[var(--color-success-strong)] shadow-sm">
           <div className="flex items-center gap-3">
-            <span className="rounded-full bg-[#2fbe4c] p-1 text-white">
+            <span className="rounded-full bg-[var(--color-success)] p-1 text-[var(--color-on-primary)]">
               <Icon name="check" size={12} />
             </span>
             {flashMessage}
           </div>
-          <button onClick={() => setFlashMessage("")} className="text-slate-400 transition hover:text-slate-700">
+          <button onClick={() => setFlashMessage("")} className="text-[var(--color-text-muted)] transition hover:text-[var(--color-text)]">
             <Icon name="close" size={16} />
           </button>
         </div>
       ) : null}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.55fr_1fr]">
-        <Card className="rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+        <Card className="rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
           <div className="space-y-6 p-6 lg:p-8">
             <div className="space-y-1">
-              <h2 className="text-xl font-bold text-slate-900">Availability schedule</h2>
-              <p className="text-sm text-slate-500">Choose a date, tap the 30-minute times you want open, then publish them.</p>
+              <h2 className="text-xl font-bold text-[var(--color-text)]">Availability schedule</h2>
+              <p className="text-sm text-[var(--color-text-muted)]">Choose a date, tap the 30-minute times you want open, then publish them.</p>
             </div>
 
             <div className="grid gap-3 lg:grid-cols-[300px_1fr]">
               <label className="space-y-2">
-                <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Clinic date</span>
+                <span className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Clinic date</span>
                 <input
                   type="date"
                   min={formatDateInput(new Date())}
                   value={selectedDate}
                   onChange={(event) => setSelectedDate(event.target.value)}
-                  className="h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold text-slate-700 outline-none ring-0 transition focus:border-[#46dd63] focus:shadow-[0_0_0_4px_rgba(70,221,99,0.14)]"
+                  className="h-14 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-base font-semibold text-[var(--color-text)] outline-none ring-0 transition focus:border-[var(--color-accent)] focus:shadow-[0_0_0_4px_var(--color-accent-soft)]"
                 />
               </label>
 
@@ -415,7 +415,7 @@ export default function SchedulePage() {
                 type="button"
                 onClick={handleSaveSelectedSlots}
                 disabled={savingSlots}
-                className="mt-auto flex h-14 items-center justify-center rounded-2xl bg-[#46dd63] px-5 text-base font-bold text-white shadow-lg shadow-[#46dd63]/25 transition hover:bg-[#36cf54] disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-auto flex h-14 items-center justify-center rounded-2xl bg-[var(--color-accent)] px-5 text-base font-bold text-[var(--color-on-primary)] shadow-lg transition hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {savingSlots ? "Saving selected slots..." : "Open selected slots"}
               </button>
@@ -437,10 +437,10 @@ export default function SchedulePage() {
                     className={[
                       "h-12 rounded-2xl border text-base font-bold transition",
                       isSelected
-                        ? "border-[#194ea6] bg-[#1d56b6] text-white shadow-sm"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-[#b6d8ff] hover:bg-[#f6fbff]",
-                      isBooked ? "cursor-not-allowed border-[#ffd9c2] bg-[#fff5ee] text-[#c67136]" : "",
-                      isPast ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300" : "",
+                        ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-sm"
+                        : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:border-[var(--color-primary-soft-border)] hover:bg-[var(--color-primary-soft)]",
+                      isBooked ? "cursor-not-allowed border-[var(--color-warning-soft)] bg-[var(--color-warning-soft)] text-[var(--color-warning-strong)]" : "",
+                      isPast ? "cursor-not-allowed border-[var(--color-border)] bg-[var(--color-surface-soft)] text-[var(--color-text-muted)] opacity-60" : "",
                     ].join(" ")}
                   >
                     {time}
@@ -449,14 +449,14 @@ export default function SchedulePage() {
               })}
             </div>
 
-            <div className="flex flex-col gap-3 rounded-2xl bg-slate-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-sm font-medium text-slate-500">
-                <span className="font-bold text-slate-800">{selectedSlots.length}</span> slots selected to open.
+            <div className="flex flex-col gap-3 rounded-2xl bg-[var(--color-surface-soft)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm font-medium text-[var(--color-text-muted)]">
+                <span className="font-bold text-[var(--color-text)]">{selectedSlots.length}</span> slots selected to open.
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedSlots([])}
-                className="text-sm font-semibold text-slate-500 transition hover:text-slate-800"
+                className="text-sm font-semibold text-[var(--color-text-muted)] transition hover:text-[var(--color-text)]"
               >
                 Clear selection
               </button>
@@ -464,14 +464,14 @@ export default function SchedulePage() {
 
             <div className="space-y-3">
               {selectedRangesPreview.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-5 text-sm text-slate-400">
+                <div className="rounded-2xl border border-dashed border-[var(--color-border)] px-4 py-5 text-sm text-[var(--color-text-muted)]">
                   Select one or more 30-minute buttons to build this day&apos;s patient-bookable windows.
                 </div>
               ) : (
                 selectedRangesPreview.map((range) => (
                   <div
                     key={`${range.startTime}-${range.endTime}`}
-                    className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-700"
+                    className="flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 text-sm font-semibold text-[var(--color-text)]"
                   >
                     <span>{selectedDate}</span>
                     <span>{formatRangeLabel(range.startTime, range.endTime)}</span>
@@ -483,23 +483,23 @@ export default function SchedulePage() {
         </Card>
 
         <div className="space-y-6">
-          <Card className="rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+          <Card className="rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
             <div className="space-y-5 p-6">
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Published windows</h3>
-                <p className="text-sm text-slate-500">Dates and time ranges currently visible to patients.</p>
+                <h3 className="text-lg font-bold text-[var(--color-text)]">Published windows</h3>
+                <p className="text-sm text-[var(--color-text-muted)]">Dates and time ranges currently visible to patients.</p>
               </div>
 
               <div className="space-y-3">
                 {publishedRanges.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-400">
+                  <div className="rounded-2xl border border-dashed border-[var(--color-border)] px-4 py-8 text-center text-sm text-[var(--color-text-muted)]">
                     No slot windows published yet.
                   </div>
                 ) : (
                   publishedRanges.map((override) => (
                     <div
                       key={override.id}
-                      className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-700"
+                      className="flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-4 text-sm font-semibold text-[var(--color-text)]"
                     >
                       <span>{override.date.slice(0, 10)}</span>
                       <span>{formatRangeLabel(override.startTime as string, override.endTime as string)}</span>
@@ -510,46 +510,46 @@ export default function SchedulePage() {
             </div>
           </Card>
 
-          <Card className="rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+          <Card className="rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
             <div className="space-y-6 p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Visit ledger</h3>
-                  <p className="text-sm text-slate-500">Scheduled appointments.</p>
+                  <h3 className="text-lg font-bold text-[var(--color-text)]">Visit ledger</h3>
+                  <p className="text-sm text-[var(--color-text-muted)]">Scheduled appointments.</p>
                 </div>
-                <div className="rounded-2xl bg-slate-50 p-3 text-slate-400">
+                <div className="rounded-2xl bg-[var(--color-surface-soft)] p-3 text-[var(--color-text-muted)]">
                   <Icon name="calendar" size={20} />
                 </div>
               </div>
 
               <div className="space-y-5">
                 {loading ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-slate-400">
-                    <div className="mb-4 h-10 w-10 animate-spin rounded-full border-4 border-slate-100 border-t-[#46dd63]" />
+                  <div className="flex flex-col items-center justify-center py-10 text-[var(--color-text-muted)]">
+                    <div className="mb-4 h-10 w-10 animate-spin rounded-full border-4 border-[var(--color-border)] border-t-[var(--color-accent)]" />
                     <p className="text-xs font-bold uppercase tracking-[0.2em]">Loading schedule...</p>
                   </div>
                 ) : upcomingBookedDays.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-400">
+                  <div className="rounded-2xl border border-dashed border-[var(--color-border)] px-4 py-8 text-center text-sm text-[var(--color-text-muted)]">
                     No upcoming appointments found.
                   </div>
                 ) : (
                   upcomingBookedDays.map((group) => (
                     <div key={group.key} className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                        <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
                           {group.label}
                         </span>
-                        <div className="h-px flex-1 bg-slate-100" />
+                        <div className="h-px flex-1 bg-[var(--color-border)]" />
                       </div>
 
                       {group.bookings.map((booking: ProviderBooking) => (
                         <div
                           key={booking.id}
-                          className="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
+                          className="flex items-start justify-between gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-4"
                         >
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-bold text-slate-900">{booking.patientName}</p>
-                            <div className="mt-1 flex items-center gap-2 text-xs font-medium text-slate-500">
+                            <p className="truncate text-sm font-bold text-[var(--color-text)]">{booking.patientName}</p>
+                            <div className="mt-1 flex items-center gap-2 text-xs font-medium text-[var(--color-text-muted)]">
                               <Icon name="clock" size={12} />
                               <span>{booking.preferredTime}</span>
                             </div>
