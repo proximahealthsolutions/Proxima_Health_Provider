@@ -316,6 +316,13 @@ export default function ProviderBookingsPage() {
         <>
           <Button
             size="sm"
+            variant="outline"
+            onClick={() => openPatientWorkspace(toPatientWorkspaceRow(booking), "patient-overview")}
+          >
+            Workspace
+          </Button>
+          <Button
+            size="sm"
             disabled={busyBookingId === booking.id}
             className="bg-[var(--color-danger)] text-white"
             onClick={() => handleEnd(booking.id)}
@@ -518,7 +525,7 @@ export default function ProviderBookingsPage() {
                   <Badge variant={bookingStatusVariant[booking.status]}>{booking.status}</Badge>
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {booking.status === "accepted" && (
+                  {(booking.status === "accepted" || booking.status === "in_progress") && (
                     <Button
                       size="sm"
                       variant="outline"
