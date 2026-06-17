@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
-import { buildAuthHeaders } from "../../../../_utils/auth";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "https://api-prod.proximahealthng.com/api";
+
+function buildAuthHeaders(request: Request) {
+  const auth = request.headers.get("authorization");
+  return auth ? { Authorization: auth } : undefined;
+}
 
 export async function PATCH(
   request: Request,
