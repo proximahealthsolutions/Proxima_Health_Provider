@@ -36,7 +36,17 @@ export default function PatientWorkspaceHistory({ patient }: { patient?: Patient
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader title="Medical History" subtitle={`Background for ${patient.name}`} />
-        <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2">
+        <div className="p-5">
+          <div className="mb-3 rounded-xl border border-red-200 bg-red-50 p-4">
+            <div className="text-xs font-bold uppercase tracking-[0.18em] text-red-600">
+              Allergy history
+            </div>
+            <div className="mt-2 text-sm font-semibold text-red-950">
+              {patient.patientHistory?.allergyHistory || "No allergies recorded"}
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-3 px-5 pb-5 md:grid-cols-2">
           {[
             { label: "Medical history", value: patient.patientHistory?.medicalHistory || "Not provided" },
             { label: "Surgical history", value: patient.patientHistory?.surgicalHistory || "Not provided" },

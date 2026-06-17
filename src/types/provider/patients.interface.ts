@@ -24,13 +24,25 @@ export interface PatientRow {
     height?: string;
     bloodPressure?: string;
     pulseRate?: string;
+    bmi?: number | null;
   } | null;
   patientHistory?: {
     medicalHistory?: string;
     surgicalHistory?: string;
     familyHistory?: string;
     socialHistory?: string;
+    allergyHistory?: string;
   } | null;
+  patientVitalSnapshots?: Array<{
+    id: string;
+    weight?: string | null;
+    height?: string | null;
+    bloodPressure?: string | null;
+    pulseRate?: string | null;
+    bmi?: number | null;
+    recordedAt?: string;
+    createdAt?: string;
+  }>;
   email?: string;
   phone?: string;
 }
