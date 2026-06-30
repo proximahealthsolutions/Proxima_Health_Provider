@@ -11,6 +11,7 @@ export type ProviderChatIntent = {
 interface ProviderUiActions {
   navigateTo: (page: ProviderPage) => void;
   openChat: (appointmentId: string, action?: "chat" | "call") => void;
+  openPatientChat: (patient: PatientRow, appointmentId: string, action?: "chat" | "call") => void;
   openPatientWorkspace: (patient: PatientRow, page?: ProviderPage) => void;
   closePatientWorkspace: () => void;
   patientWorkspace: PatientRow | null;
@@ -37,6 +38,7 @@ export function useProviderUi() {
     context ?? {
       navigateTo: () => {},
       openChat: () => {},
+      openPatientChat: () => {},
       openPatientWorkspace: () => {},
       closePatientWorkspace: () => {},
       patientWorkspace: null,

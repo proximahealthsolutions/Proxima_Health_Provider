@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { ProviderSidebarProps, ProviderNavSection } from "@/types";
 import { fetchApi } from "@/lib/api";
 import { logoutProviderSession } from "@/lib/session";
+import { loadProviderNotificationItems } from "@/lib/provider-notification-items";
+import { getReadProviderNotificationIds } from "@/lib/notification-read-state";
 
 const navSections: ProviderNavSection[] = [
   {
@@ -69,50 +71,35 @@ export default function ProviderSidebar({
 
   useEffect(() => {
     let mounted = true;
-    (async () => {
+    async function loadCounts() {
       try {
-        const [patients, appointments, labOrders, threads, prescriptions] = await Promise.all([
+        const [patients, appointments, notifications] = await Promise.all([
           fetchApi("/providers/patients"),
           fetchApi("/providers/appointments"),
-          fetchApi("/providers/clinical/lab-orders"),
-          fetchApi("/providers/messages/threads"),
-          fetchApi("/providers/prescriptions"),
+          loadProviderNotificationItems(),
         ]);
         if (!mounted) return;
         setPatientCount(Array.isArray(patients) ? patients.length : 0);
-        if (Array.isArray(appointments)) {
-          const pending = appointments.filter((row) => row?.status === "REQUESTED").length;
-          setBookingCount(pending);
-          const patientLabUploads = Array.isArray(labOrders)
-            ? labOrders.filter((row) => row?.uploadedBy === "patient").length
-            : 0;
-          const messageUpdates = Array.isArray(threads)
-            ? threads.filter((row) => Boolean(row?.lastMessage)).length
-            : 0;
-          const medicationRequests = Array.isArray(prescriptions)
-            ? prescriptions.reduce(
-                (total, row) =>
-                  total +
-                  ((row?.changeRequests ?? []).filter(
-                    (request: { status?: string | null }) => request?.status === "PENDING"
-                  ).length ?? 0),
-                0
-              )
-            : 0;
-          setNotificationCount(pending + patientLabUploads + messageUpdates + medicationRequests);
-        } else {
-          setBookingCount(0);
-          setNotificationCount(0);
-        }
+        setBookingCount(
+          Array.isArray(appointments)
+            ? appointments.filter((row) => row?.status === "REQUESTED").length
+            : 0,
+        );
+        const readIds = getReadProviderNotificationIds();
+        setNotificationCount(notifications.filter((item) => !readIds.has(item.id)).length);
       } catch {
         if (!mounted) return;
         setPatientCount(null);
         setBookingCount(null);
         setNotificationCount(null);
       }
-    })();
+    }
+
+    loadCounts();
+    window.addEventListener("provider-notifications-read", loadCounts);
     return () => {
       mounted = false;
+      window.removeEventListener("provider-notifications-read", loadCounts);
     };
   }, []);
 

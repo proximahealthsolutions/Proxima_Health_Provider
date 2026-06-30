@@ -5,61 +5,21 @@ import Badge from "@/components/shared/Badge";
 import Button from "@/components/shared/Button";
 import Card, { CardHeader } from "@/components/shared/Card";
 import { useProviderUi } from "@/components/provider/ProviderUiContext";
-import { fetchApi } from "@/lib/api";
-
-type NotificationItem = {
-  id: string;
-  title: string;
-  detail: string;
-  kind: "booking" | "lab" | "message" | "prescription";
-  target: "bookings" | "laborders" | "messages" | "prescriptions";
-  appointmentId?: string;
-  patientId?: string;
-  reason?: string | null;
-  requestAction?: "CONTINUE" | "ADJUST" | "NO_LONGER_TAKING";
-  createdAt?: string | null;
-};
-
-type MessageThread = {
-  id: string;
-  patientName: string;
-  lastMessage?: string | null;
-  lastMessageAt?: string | null;
-  status: string;
-};
-
-type LabOrder = {
-  id: string;
-  test: string;
-  ordered: string;
-  uploadedBy?: "patient" | "provider" | null;
-  fileName?: string | null;
-};
-
-type ProviderPrescription = {
-  id: string;
-  medication: string;
-  dosage: string;
-  frequency: string;
-  duration: string;
-  patient?: {
-    id?: string;
-    firstName?: string | null;
-    lastName?: string | null;
-    patientRecordNumber?: string | null;
-  } | null;
-  changeRequests?: Array<{
-    id: string;
-    action: "CONTINUE" | "ADJUST" | "NO_LONGER_TAKING";
-    note?: string | null;
-    status: "PENDING" | "APPROVED" | "DECLINED";
-    createdAt?: string | null;
-  }>;
-};
+import {
+  loadProviderNotificationItems,
+  notificationPatient,
+  type ProviderNotificationItem,
+} from "@/lib/provider-notification-items";
+import {
+  getReadProviderNotificationIds,
+  markProviderNotificationRead,
+  markProviderNotificationsRead,
+} from "@/lib/notification-read-state";
 
 export default function ProviderNotificationsPage() {
-  const { navigateTo, openChat, notify } = useProviderUi();
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const { navigateTo, openChat, openPatientChat, openPatientWorkspace, notify } = useProviderUi();
+  const [notifications, setNotifications] = useState<ProviderNotificationItem[]>([]);
+  const [readIds, setReadIds] = useState<Set<string>>(() => getReadProviderNotificationIds());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -67,80 +27,8 @@ export default function ProviderNotificationsPage() {
 
     (async () => {
       try {
-        const [appointments, labOrders, threads, prescriptions] = await Promise.all([
-          fetchApi("/providers/appointments"),
-          fetchApi("/providers/clinical/lab-orders"),
-          fetchApi("/providers/messages/threads"),
-          fetchApi("/providers/prescriptions"),
-        ]);
-
+        const all = await loadProviderNotificationItems();
         if (!mounted) return;
-
-        const bookingNotifications: NotificationItem[] = (Array.isArray(appointments) ? appointments : [])
-          .filter((row) => row?.status === "REQUESTED")
-          .map((row) => ({
-            id: `booking-${row.id}`,
-            title: "New booking request",
-            detail: `${row?.patient?.firstName ?? "Patient"} ${row?.patient?.lastName ?? ""}`.trim() || "A patient requested a booking.",
-            kind: "booking",
-            target: "bookings",
-            appointmentId: row.id,
-            createdAt: row?.createdAt ?? row?.startAt ?? null,
-          }));
-
-        const labNotifications: NotificationItem[] = (Array.isArray(labOrders) ? labOrders : [])
-          .filter((row: LabOrder) => row?.uploadedBy === "patient")
-          .map((row: LabOrder) => ({
-            id: `lab-${row.id}`,
-            title: "Patient uploaded a lab result",
-            detail: row.fileName ? `${row.test} • ${row.fileName}` : row.test,
-            kind: "lab",
-            target: "laborders",
-            createdAt: row.ordered,
-          }));
-
-        const messageNotifications: NotificationItem[] = (Array.isArray(threads) ? threads : [])
-          .filter((row: MessageThread) => Boolean(row?.lastMessage))
-          .map((row: MessageThread) => ({
-            id: `message-${row.id}`,
-            title: "New message update",
-            detail: `${row.patientName}: ${row.lastMessage}`,
-            kind: "message",
-            target: "messages",
-            appointmentId: row.id,
-            createdAt: row.lastMessageAt ?? null,
-          }));
-
-        const prescriptionNotifications: NotificationItem[] = (Array.isArray(prescriptions) ? prescriptions : []).flatMap(
-          (prescription: ProviderPrescription) => {
-            const patientName =
-              `${prescription.patient?.firstName ?? ""} ${prescription.patient?.lastName ?? ""}`.trim() ||
-              "Patient";
-
-            return (prescription.changeRequests ?? [])
-              .filter((request) => request.status === "PENDING")
-              .map((request) => ({
-                id: `prescription-${request.id}`,
-                title: "Medication request needs review",
-                detail: `${patientName} requested ${formatMedicationAction(request.action)} for ${prescription.medication}.`,
-                kind: "prescription" as const,
-                target: "prescriptions" as const,
-                patientId: prescription.patient?.id,
-                reason: request.note,
-                requestAction: request.action,
-                createdAt: request.createdAt ?? null,
-              }));
-          }
-        );
-
-        const all = [...bookingNotifications, ...labNotifications, ...messageNotifications, ...prescriptionNotifications].sort(
-          (a, b) => {
-            const left = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const right = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return right - left;
-          }
-        );
-
         setNotifications(all);
       } catch {
         if (!mounted) return;
@@ -157,19 +45,38 @@ export default function ProviderNotificationsPage() {
   }, []);
 
   const stats = useMemo(() => {
-    const bookings = notifications.filter((item) => item.kind === "booking").length;
-    const labs = notifications.filter((item) => item.kind === "lab").length;
-    const messages = notifications.filter((item) => item.kind === "message").length;
-    const prescriptions = notifications.filter((item) => item.kind === "prescription").length;
-    return { bookings, labs, messages, prescriptions, total: notifications.length };
-  }, [notifications]);
+    const unread = notifications.filter((item) => !readIds.has(item.id));
+    const bookings = unread.filter((item) => item.kind === "booking").length;
+    const labs = unread.filter((item) => item.kind === "lab").length;
+    const messages = unread.filter((item) => item.kind === "message").length;
+    const prescriptions = unread.filter((item) => item.kind === "prescription").length;
+    return { bookings, labs, messages, prescriptions, total: unread.length };
+  }, [notifications, readIds]);
 
-  function openNotification(item: NotificationItem) {
+  function openNotification(item: ProviderNotificationItem) {
+    markProviderNotificationRead(item.id);
+    setReadIds(getReadProviderNotificationIds());
+
+    const patient = notificationPatient(item);
     if (item.target === "messages" && item.appointmentId) {
+      if (patient) {
+        openPatientChat(patient, item.appointmentId, "chat");
+        return;
+      }
       openChat(item.appointmentId, "chat");
       return;
     }
+    if (item.target === "prescriptions" && patient) {
+      openPatientWorkspace(patient, "patient-prescriptions");
+      return;
+    }
     navigateTo(item.target);
+  }
+
+  function markAllRead() {
+    markProviderNotificationsRead(notifications.map((item) => item.id));
+    setReadIds(getReadProviderNotificationIds());
+    notify("All notifications marked as read.");
   }
 
   return (
@@ -205,9 +112,9 @@ export default function ProviderNotificationsPage() {
       <Card>
         <CardHeader
           title="Alert Center"
-          subtitle={loading ? "Loading notifications..." : `${notifications.length} notifications available`}
+          subtitle={loading ? "Loading notifications..." : `${stats.total} unread notifications`}
           actions={
-            <Button variant="outline" size="sm" onClick={() => notify("Notifications reviewed.")}>
+            <Button variant="outline" size="sm" onClick={markAllRead}>
               Mark reviewed
             </Button>
           }
@@ -241,7 +148,7 @@ export default function ProviderNotificationsPage() {
                         : "green"
                     }
                   >
-                    {item.kind}
+                    {readIds.has(item.id) ? "read" : item.kind}
                   </Badge>
                 </div>
                 <p className="mt-2 text-sm text-[var(--color-text-muted)]">{item.detail}</p>
@@ -273,9 +180,4 @@ export default function ProviderNotificationsPage() {
       </Card>
     </div>
   );
-}
-
-function formatMedicationAction(action: string) {
-  if (action === "NO_LONGER_TAKING") return "no longer taking";
-  return action.toLowerCase();
 }

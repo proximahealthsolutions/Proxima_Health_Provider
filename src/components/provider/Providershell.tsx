@@ -45,6 +45,11 @@ export default function ProviderShell() {
         setChatIntent({ appointmentId, action });
         setActivePage(patientWorkspace ? "patient-messages" : "messages");
       },
+      openPatientChat: (patient: PatientRow, appointmentId: string, action?: "chat" | "call") => {
+        setPatientWorkspace(patient);
+        setChatIntent({ appointmentId, action });
+        setActivePage("patient-messages");
+      },
       openPatientWorkspace: (patient: PatientRow, page: ProviderPage = "patient-overview") => {
         setPatientWorkspace(patient);
         setActivePage(page);

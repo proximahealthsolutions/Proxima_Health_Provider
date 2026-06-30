@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Avatar from "@/components/shared/Avatar";
 import Icon from "@/components/shared/Icon";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import { ProviderTopbarProps, ProviderPage } from "@/types";
 import { useProviderUi } from "@/components/provider/ProviderUiContext";
+import { loadProviderNotificationItems } from "@/lib/provider-notification-items";
+import { getReadProviderNotificationIds } from "@/lib/notification-read-state";
 
 const pageTitles: Record<ProviderPage, string> = {
   overview:      "Dashboard",
@@ -43,11 +46,32 @@ export default function ProviderTopbar({
   profile,
 }: ProviderTopbarProps) {
   const { patientWorkspace, closePatientWorkspace } = useProviderUi();
+  const [unreadCount, setUnreadCount] = useState(0);
   const initials = initialsFromProfile(profile?.firstName, profile?.lastName);
   const displayName =
     profile?.firstName || profile?.lastName
       ? `${profile?.firstName ?? ""} ${profile?.lastName ?? ""}`.trim()
       : "Physician";
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadUnreadCount() {
+      try {
+        const notifications = await loadProviderNotificationItems();
+        const readIds = getReadProviderNotificationIds();
+        if (mounted) setUnreadCount(notifications.filter((item) => !readIds.has(item.id)).length);
+      } catch {
+        if (mounted) setUnreadCount(0);
+      }
+    }
+
+    loadUnreadCount();
+    window.addEventListener("provider-notifications-read", loadUnreadCount);
+    return () => {
+      mounted = false;
+      window.removeEventListener("provider-notifications-read", loadUnreadCount);
+    };
+  }, []);
 
   return (
     <header className="sticky top-0 z-20 flex items-center gap-2 sm:gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]/92 px-3 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface)]/82 sm:px-4 [padding-top:calc(env(safe-area-inset-top)+0.75rem)]">
@@ -83,7 +107,11 @@ export default function ProviderTopbar({
         aria-label="Open notifications"
       >
         <Icon name="bell" className="w-5 h-5" />
-        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[var(--color-primary)] rounded-full" />
+        {unreadCount > 0 && (
+          <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-danger)] px-1 text-[10px] font-bold leading-none text-[var(--color-on-primary)]">
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        )}
       </button>
       <button className="hidden sm:flex items-center justify-center w-10 h-10 rounded-xl hover:bg-[var(--color-surface-soft)] transition-colors text-[var(--color-text)]">
         <Icon name="clipboard" className="w-5 h-5" />
