@@ -11,9 +11,12 @@ type NotificationItem = {
   id: string;
   title: string;
   detail: string;
-  kind: "booking" | "lab" | "message";
-  target: "bookings" | "laborders" | "messages";
+  kind: "booking" | "lab" | "message" | "prescription";
+  target: "bookings" | "laborders" | "messages" | "prescriptions";
   appointmentId?: string;
+  patientId?: string;
+  reason?: string | null;
+  requestAction?: "CONTINUE" | "ADJUST" | "NO_LONGER_TAKING";
   createdAt?: string | null;
 };
 
@@ -33,6 +36,27 @@ type LabOrder = {
   fileName?: string | null;
 };
 
+type ProviderPrescription = {
+  id: string;
+  medication: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  patient?: {
+    id?: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    patientRecordNumber?: string | null;
+  } | null;
+  changeRequests?: Array<{
+    id: string;
+    action: "CONTINUE" | "ADJUST" | "NO_LONGER_TAKING";
+    note?: string | null;
+    status: "PENDING" | "APPROVED" | "DECLINED";
+    createdAt?: string | null;
+  }>;
+};
+
 export default function ProviderNotificationsPage() {
   const { navigateTo, openChat, notify } = useProviderUi();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -43,10 +67,11 @@ export default function ProviderNotificationsPage() {
 
     (async () => {
       try {
-        const [appointments, labOrders, threads] = await Promise.all([
+        const [appointments, labOrders, threads, prescriptions] = await Promise.all([
           fetchApi("/providers/appointments"),
           fetchApi("/providers/clinical/lab-orders"),
           fetchApi("/providers/messages/threads"),
+          fetchApi("/providers/prescriptions"),
         ]);
 
         if (!mounted) return;
@@ -86,7 +111,29 @@ export default function ProviderNotificationsPage() {
             createdAt: row.lastMessageAt ?? null,
           }));
 
-        const all = [...bookingNotifications, ...labNotifications, ...messageNotifications].sort(
+        const prescriptionNotifications: NotificationItem[] = (Array.isArray(prescriptions) ? prescriptions : []).flatMap(
+          (prescription: ProviderPrescription) => {
+            const patientName =
+              `${prescription.patient?.firstName ?? ""} ${prescription.patient?.lastName ?? ""}`.trim() ||
+              "Patient";
+
+            return (prescription.changeRequests ?? [])
+              .filter((request) => request.status === "PENDING")
+              .map((request) => ({
+                id: `prescription-${request.id}`,
+                title: "Medication request needs review",
+                detail: `${patientName} requested ${formatMedicationAction(request.action)} for ${prescription.medication}.`,
+                kind: "prescription" as const,
+                target: "prescriptions" as const,
+                patientId: prescription.patient?.id,
+                reason: request.note,
+                requestAction: request.action,
+                createdAt: request.createdAt ?? null,
+              }));
+          }
+        );
+
+        const all = [...bookingNotifications, ...labNotifications, ...messageNotifications, ...prescriptionNotifications].sort(
           (a, b) => {
             const left = a.createdAt ? new Date(a.createdAt).getTime() : 0;
             const right = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -113,7 +160,8 @@ export default function ProviderNotificationsPage() {
     const bookings = notifications.filter((item) => item.kind === "booking").length;
     const labs = notifications.filter((item) => item.kind === "lab").length;
     const messages = notifications.filter((item) => item.kind === "message").length;
-    return { bookings, labs, messages, total: notifications.length };
+    const prescriptions = notifications.filter((item) => item.kind === "prescription").length;
+    return { bookings, labs, messages, prescriptions, total: notifications.length };
   }, [notifications]);
 
   function openNotification(item: NotificationItem) {
@@ -143,6 +191,9 @@ export default function ProviderNotificationsPage() {
             </Badge>
             <Badge variant="gray" className="justify-center bg-white/15 border border-white/25 text-[var(--color-on-primary)]">
               {stats.messages} Messages
+            </Badge>
+            <Badge variant="gray" className="justify-center bg-white/15 border border-white/25 text-[var(--color-on-primary)]">
+              {stats.prescriptions} Meds
             </Badge>
             <Badge variant="gray" className="justify-center bg-white/15 border border-white/25 text-[var(--color-on-primary)]">
               {stats.total} Total
@@ -181,15 +232,36 @@ export default function ProviderNotificationsPage() {
                   <p className="font-semibold text-[var(--color-text)]">{item.title}</p>
                   <Badge
                     variant={
-                      item.kind === "booking" ? "yellow" : item.kind === "lab" ? "blue" : "green"
+                      item.kind === "booking"
+                        ? "yellow"
+                        : item.kind === "lab"
+                        ? "blue"
+                        : item.kind === "prescription"
+                        ? "purple"
+                        : "green"
                     }
                   >
                     {item.kind}
                   </Badge>
                 </div>
                 <p className="mt-2 text-sm text-[var(--color-text-muted)]">{item.detail}</p>
+                {item.kind === "prescription" && item.reason && (
+                  <div className="mt-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+                      Patient reason
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--color-text)]">{item.reason}</p>
+                  </div>
+                )}
                 <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-                  Opens {item.target === "laborders" ? "Lab Orders" : item.target === "bookings" ? "Bookings" : "Messages"}
+                  Opens{" "}
+                  {item.target === "laborders"
+                    ? "Lab Orders"
+                    : item.target === "bookings"
+                    ? "Bookings"
+                    : item.target === "prescriptions"
+                    ? "Prescriptions"
+                    : "Messages"}
                 </p>
               </div>
               <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">
@@ -201,4 +273,9 @@ export default function ProviderNotificationsPage() {
       </Card>
     </div>
   );
+}
+
+function formatMedicationAction(action: string) {
+  if (action === "NO_LONGER_TAKING") return "no longer taking";
+  return action.toLowerCase();
 }

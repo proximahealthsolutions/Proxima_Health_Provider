@@ -71,11 +71,12 @@ export default function ProviderSidebar({
     let mounted = true;
     (async () => {
       try {
-        const [patients, appointments, labOrders, threads] = await Promise.all([
+        const [patients, appointments, labOrders, threads, prescriptions] = await Promise.all([
           fetchApi("/providers/patients"),
           fetchApi("/providers/appointments"),
           fetchApi("/providers/clinical/lab-orders"),
           fetchApi("/providers/messages/threads"),
+          fetchApi("/providers/prescriptions"),
         ]);
         if (!mounted) return;
         setPatientCount(Array.isArray(patients) ? patients.length : 0);
@@ -88,7 +89,17 @@ export default function ProviderSidebar({
           const messageUpdates = Array.isArray(threads)
             ? threads.filter((row) => Boolean(row?.lastMessage)).length
             : 0;
-          setNotificationCount(pending + patientLabUploads + messageUpdates);
+          const medicationRequests = Array.isArray(prescriptions)
+            ? prescriptions.reduce(
+                (total, row) =>
+                  total +
+                  ((row?.changeRequests ?? []).filter(
+                    (request: { status?: string | null }) => request?.status === "PENDING"
+                  ).length ?? 0),
+                0
+              )
+            : 0;
+          setNotificationCount(pending + patientLabUploads + messageUpdates + medicationRequests);
         } else {
           setBookingCount(0);
           setNotificationCount(0);
