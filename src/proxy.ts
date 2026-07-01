@@ -24,6 +24,11 @@ function getTokenRole(token?: string) {
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+
+  if (pathname.startsWith("/api/auth/")) {
+    return NextResponse.next();
+  }
+
   if (!pathname.startsWith("/api/")) {
     const isPublicFile = /\.(?:png|jpg|jpeg|svg|gif|webp|ico|txt|xml|json|webmanifest)$/i.test(
       pathname
