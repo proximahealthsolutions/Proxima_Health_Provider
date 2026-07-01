@@ -360,31 +360,31 @@ export default function PrescriptionsPage() {
                   return (
                     <div
                       key={p.id}
-                      className="rounded-2xl border-2 border-rose-500 bg-rose-50/15 p-5 shadow-md flex flex-col justify-between gap-4"
+                      className="rounded-2xl border-2 border-rose-500 bg-[var(--color-surface)] p-5 shadow-md flex flex-col justify-between gap-4"
                     >
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 bg-rose-50 px-2.5 py-1 rounded border border-rose-200">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500 bg-rose-500/10 px-2.5 py-1 rounded border border-rose-500/20">
                             Update medication plan
                           </span>
                           <Badge variant="red">{p.status}</Badge>
                         </div>
                         <div>
-                          <h4 className="text-xl font-bold text-slate-900">{p.medication}</h4>
-                          <p className="mt-1 text-xs text-slate-500 font-medium">
+                          <h4 className="text-xl font-bold text-[var(--color-text)]">{p.medication}</h4>
+                          <p className="mt-1 text-xs text-[var(--color-text-muted)] font-medium">
                             {p.dosage} · {p.frequency} · {p.duration}
                           </p>
                         </div>
-                        <div className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-3 text-xs text-rose-900 font-semibold leading-relaxed">
+                        <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-3 text-xs text-[var(--color-text)] font-semibold leading-relaxed">
                           Patient reports: {pendingReq.action === "NO_LONGER_TAKING" ? "no longer taking this medication." : pendingReq.action === "ADJUST" ? "need to adjust this medication." : "want to continue this medication."}
                           {pendingReq.note && (
-                            <div className="mt-2 text-slate-700 font-normal italic">
+                            <div className="mt-2 text-[var(--color-text-muted)] font-normal italic">
                               &quot;{pendingReq.note}&quot;
                             </div>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 pt-2 border-t border-rose-100/50">
+                      <div className="flex items-center gap-2 pt-2 border-t border-[var(--color-border)]/50">
                         <Button
                           size="sm"
                           className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex-1"

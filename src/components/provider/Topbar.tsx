@@ -26,7 +26,8 @@ const pageTitles: Record<ProviderPage, string> = {
   "patient-prescriptions": "Patient Prescriptions",
   "patient-laborders": "Patient Lab Results",
   "patient-vitals": "Patient Vitals",
-  "patient-history": "Patient History",
+  "patient-medical-history": "Medical History",
+  "patient-general-history": "General History",
 };
 
 function initialsFromProfile(firstName?: string | null, lastName?: string | null) {

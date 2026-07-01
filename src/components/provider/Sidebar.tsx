@@ -39,7 +39,8 @@ const patientWorkspaceSections: ProviderNavSection[] = [
       { icon: "pill", label: "Prescriptions", page: "patient-prescriptions" },
       { icon: "flask", label: "Lab Results", page: "patient-laborders" },
       { icon: "activity", label: "Vital Trends", page: "patient-vitals" },
-      { icon: "receipt", label: "History", page: "patient-history" },
+      { icon: "receipt", label: "Medical History", page: "patient-medical-history" },
+      { icon: "calendar", label: "General History", page: "patient-general-history" },
     ],
   },
 ];

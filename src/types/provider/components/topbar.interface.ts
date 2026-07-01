@@ -17,7 +17,8 @@ export type ProviderPage =
   | "patient-prescriptions"
   | "patient-laborders"
   | "patient-vitals"
-  | "patient-history";
+  | "patient-medical-history"
+  | "patient-general-history";
 
 export interface ProviderProfileSummary {
   firstName?: string | null;

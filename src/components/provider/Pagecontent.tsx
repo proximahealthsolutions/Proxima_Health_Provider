@@ -44,7 +44,8 @@ export default function ProviderPageContent({ activePage, patientWorkspace }: Pr
       case "patient-prescriptions": return <Prescriptions />;
       case "patient-laborders": return <LabOrders />;
       case "patient-vitals": return <PatientWorkspaceVitals patient={patientWorkspace} />;
-      case "patient-history": return <PatientWorkspaceHistory patient={patientWorkspace} />;
+      case "patient-medical-history": return <PatientWorkspaceHistory patient={patientWorkspace} type="medical" />;
+      case "patient-general-history": return <PatientWorkspaceHistory patient={patientWorkspace} type="general" />;
       default: return <Overview />;
     }
   };

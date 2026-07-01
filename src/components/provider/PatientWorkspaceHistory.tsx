@@ -7,7 +7,13 @@ import type { PatientRow, ProviderBooking } from "@/types";
 import { bookingStatusVariant } from "@/types";
 import { getProviderBookings } from "@/services/provider-bookings.service";
 
-export default function PatientWorkspaceHistory({ patient }: { patient?: PatientRow | null }) {
+export default function PatientWorkspaceHistory({
+  patient,
+  type,
+}: {
+  patient?: PatientRow | null;
+  type: "medical" | "general";
+}) {
   const [bookings, setBookings] = useState<ProviderBooking[]>([]);
 
   useEffect(() => {
@@ -32,16 +38,16 @@ export default function PatientWorkspaceHistory({ patient }: { patient?: Patient
     );
   }
 
-  return (
-    <div className="flex flex-col gap-6">
+  if (type === "medical") {
+    return (
       <Card>
         <CardHeader title="Medical History" subtitle={`Background for ${patient.name}`} />
         <div className="p-5">
-          <div className="mb-3 rounded-xl border border-red-200 bg-red-50 p-4">
-            <div className="text-xs font-bold uppercase tracking-[0.18em] text-red-600">
+          <div className="mb-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4">
+            <div className="text-xs font-bold uppercase tracking-[0.18em] text-rose-500">
               Allergy history
             </div>
-            <div className="mt-2 text-sm font-semibold text-red-950">
+            <div className="mt-2 text-sm font-semibold text-[var(--color-text)]">
               {patient.patientHistory?.allergyHistory || "No allergies recorded"}
             </div>
           </div>
@@ -62,28 +68,30 @@ export default function PatientWorkspaceHistory({ patient }: { patient?: Patient
           ))}
         </div>
       </Card>
+    );
+  }
 
-      <Card>
-        <CardHeader title="Visit History" subtitle={`${historyRows.length} appointment records`} />
-        <div className="divide-y divide-[var(--color-border)]">
-          {historyRows.length === 0 ? (
-            <div className="p-5 text-sm text-[var(--color-text-muted)]">No visits recorded yet for this patient.</div>
-          ) : (
-            historyRows.map((booking) => (
-              <div key={booking.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-[var(--color-text)]">{booking.reason}</div>
-                  <div className="mt-1 text-xs text-[var(--color-text-muted)]">
-                    {booking.preferredDate} · {booking.preferredTime}
-                    {booking.endTime ? ` - ${booking.endTime}` : ""}
-                  </div>
+  return (
+    <Card>
+      <CardHeader title="General History" subtitle={`${historyRows.length} appointment records`} />
+      <div className="divide-y divide-[var(--color-border)]">
+        {historyRows.length === 0 ? (
+          <div className="p-5 text-sm text-[var(--color-text-muted)]">No visits recorded yet for this patient.</div>
+        ) : (
+          historyRows.map((booking) => (
+            <div key={booking.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-[var(--color-text)]">{booking.reason}</div>
+                <div className="mt-1 text-xs text-[var(--color-text-muted)]">
+                  {booking.preferredDate} · {booking.preferredTime}
+                  {booking.endTime ? ` - ${booking.endTime}` : ""}
                 </div>
-                <Badge variant={bookingStatusVariant[booking.status]}>{booking.status}</Badge>
               </div>
-            ))
-          )}
-        </div>
-      </Card>
-    </div>
+              <Badge variant={bookingStatusVariant[booking.status]}>{booking.status}</Badge>
+            </div>
+          ))
+        )}
+      </div>
+    </Card>
   );
 }

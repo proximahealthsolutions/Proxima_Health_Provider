@@ -109,7 +109,8 @@ export default function PatientWorkspaceOverview({ patient }: { patient?: Patien
               { label: "Prescriptions", page: "patient-prescriptions" as const },
               { label: "Lab Results", page: "patient-laborders" as const },
               { label: "Vital Trends", page: "patient-vitals" as const },
-              { label: "History", page: "patient-history" as const },
+              { label: "Medical History", page: "patient-medical-history" as const },
+              { label: "General History", page: "patient-general-history" as const },
             ].map((action) => (
               <Button
                 key={action.page}
