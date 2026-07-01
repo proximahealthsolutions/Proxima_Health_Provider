@@ -6,6 +6,16 @@ import Badge from "@/components/shared/Badge";
 import type { PatientRow, ProviderBooking } from "@/types";
 import { bookingStatusVariant } from "@/types";
 import { getProviderBookings } from "@/services/provider-bookings.service";
+import { fetchApi } from "@/lib/api";
+
+type HistoryTimelineItem = {
+  id: string;
+  title: string;
+  detail: string;
+  date: string;
+  badgeText: string;
+  badgeVariant: "gray" | "blue" | "green" | "yellow" | "red" | "purple" | "orange" | "teal";
+};
 
 export default function PatientWorkspaceHistory({
   patient,
@@ -15,20 +25,67 @@ export default function PatientWorkspaceHistory({
   type: "medical" | "general";
 }) {
   const [bookings, setBookings] = useState<ProviderBooking[]>([]);
+  const [prescriptions, setPrescriptions] = useState<any[]>([]);
 
   useEffect(() => {
     if (!patient?.id) return;
+    
+    // Load bookings
     getProviderBookings()
       .then((rows) => setBookings(rows.filter((row) => row.patientId === patient.id)))
       .catch(() => setBookings([]));
+
+    // Load prescriptions to construct discontinued history and reviewed change requests history
+    fetchApi("/providers/prescriptions")
+      .then((rows) => setPrescriptions(Array.isArray(rows) ? rows.filter((row) => row.patientId === patient.id) : []))
+      .catch(() => setPrescriptions([]));
   }, [patient?.id]);
 
-  const historyRows = useMemo(
-    () =>
-      [...bookings]
-        .sort((a, b) => new Date(b.startAt ?? 0).getTime() - new Date(a.startAt ?? 0).getTime()),
-    [bookings]
-  );
+  const timelineItems = useMemo(() => {
+    if (type !== "general") return [];
+
+    // 1. Visit logs (bookings)
+    const visits = bookings.map((b) => ({
+      id: `visit-${b.id}`,
+      title: b.reason || "Appointment Visit",
+      detail: `${b.preferredDate} · ${b.preferredTime}${b.endTime ? ` - ${b.endTime}` : ""}`,
+      date: b.startAt || b.preferredDate || new Date().toISOString(),
+      badgeText: b.status,
+      badgeVariant: (bookingStatusVariant[b.status] || "gray") as any,
+    }));
+
+    // 2. Discontinued prescriptions
+    const discontinued = prescriptions
+      .filter((p) => p.status === "DISCONTINUED")
+      .map((p) => ({
+        id: `discontinued-${p.id}`,
+        title: `Discontinued: ${p.medication}`,
+        detail: `${p.dosage} · ${p.frequency} · ${p.duration}`,
+        date: p.updatedAt || p.createdAt || new Date().toISOString(),
+        badgeText: "Discontinued",
+        badgeVariant: "red" as const,
+      }));
+
+    // 3. Approved/Declined medication change requests
+    const changeReviews = prescriptions.flatMap((p) =>
+      (p.changeRequests ?? [])
+        .filter((req: any) => req.status === "APPROVED" || req.status === "DECLINED")
+        .map((req: any) => ({
+          id: `req-review-${req.id}`,
+          title: `Medication request ${req.status.toLowerCase()}: ${p.medication}`,
+          detail: `Action requested: ${req.action.toLowerCase().replaceAll("_", " ")}${
+            req.physicianNote ? ` · Physician Note: ${req.physicianNote}` : ""
+          }`,
+          date: req.updatedAt || req.createdAt || p.updatedAt || new Date().toISOString(),
+          badgeText: req.status === "APPROVED" ? "Approved" : "Declined",
+          badgeVariant: req.status === "APPROVED" ? ("green" as const) : ("red" as const),
+        }))
+    );
+
+    return [...visits, ...discontinued, ...changeReviews].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [bookings, prescriptions, type]);
 
   if (!patient) {
     return (
@@ -73,21 +130,23 @@ export default function PatientWorkspaceHistory({
 
   return (
     <Card>
-      <CardHeader title="General History" subtitle={`${historyRows.length} appointment records`} />
+      <CardHeader title="General History" subtitle={`${timelineItems.length} records`} />
       <div className="divide-y divide-[var(--color-border)]">
-        {historyRows.length === 0 ? (
-          <div className="p-5 text-sm text-[var(--color-text-muted)]">No visits recorded yet for this patient.</div>
+        {timelineItems.length === 0 ? (
+          <div className="p-5 text-sm text-[var(--color-text-muted)]">No general history records found.</div>
         ) : (
-          historyRows.map((booking) => (
-            <div key={booking.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          timelineItems.map((item) => (
+            <div key={item.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-[var(--color-text)]">{booking.reason}</div>
+                <div className="text-sm font-semibold text-[var(--color-text)]">{item.title}</div>
                 <div className="mt-1 text-xs text-[var(--color-text-muted)]">
-                  {booking.preferredDate} · {booking.preferredTime}
-                  {booking.endTime ? ` - ${booking.endTime}` : ""}
+                  {item.detail}
+                </div>
+                <div className="mt-1 text-[10px] text-[var(--color-text-muted)] opacity-80">
+                  {new Date(item.date).toLocaleString()}
                 </div>
               </div>
-              <Badge variant={bookingStatusVariant[booking.status]}>{booking.status}</Badge>
+              <Badge variant={item.badgeVariant}>{item.badgeText}</Badge>
             </div>
           ))
         )}

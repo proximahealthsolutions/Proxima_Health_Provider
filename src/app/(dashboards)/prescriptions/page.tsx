@@ -61,13 +61,12 @@ export default function PrescriptionsPage() {
   }, []);
 
   // Filter rows based on workspace patient and active tab
-  const visibleRows = (patientWorkspace
-    ? rows.filter((row) => row.patientId === patientWorkspace.id)
-    : rows
-  ).filter((row) => {
-    if (activeTab === "ACTIVE") return row.status === "ACTIVE";
-    return row.status !== "ACTIVE";
-  });
+  const visibleRows = patientWorkspace
+    ? rows.filter((row) => row.patientId === patientWorkspace.id && row.status === "ACTIVE")
+    : rows.filter((row) => {
+        if (activeTab === "ACTIVE") return row.status === "ACTIVE";
+        return row.status !== "ACTIVE";
+      });
 
   // Extract pending change requests
   const pendingRequests = rows.flatMap((prescription) => {
@@ -322,30 +321,6 @@ export default function PrescriptionsPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-[var(--color-text)]">Medications</h3>
-            <div className="flex gap-1.5 bg-slate-100 p-1 rounded-xl">
-              <button
-                onClick={() => setActiveTab("ACTIVE")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
-                  activeTab === "ACTIVE"
-                    ? "bg-white text-slate-800 shadow-sm"
-                    : "text-slate-500 hover:text-slate-800"
-                )}
-              >
-                Active
-              </button>
-              <button
-                onClick={() => setActiveTab("HISTORY")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
-                  activeTab === "HISTORY"
-                    ? "bg-white text-slate-800 shadow-sm"
-                    : "text-slate-500 hover:text-slate-800"
-                )}
-              >
-                History
-              </button>
-            </div>
           </div>
 
           {visibleRows.length === 0 ? (
@@ -452,14 +427,14 @@ export default function PrescriptionsPage() {
             title="Medication List"
             subtitle={`${visibleRows.length} therapy records`}
             actions={
-              <div className="flex gap-1.5 bg-slate-100 p-1 rounded-xl">
+              <div className="flex gap-1.5 bg-[var(--color-surface-soft)] p-1 rounded-xl">
                 <button
                   onClick={() => setActiveTab("ACTIVE")}
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
                     activeTab === "ACTIVE"
-                      ? "bg-white text-slate-800 shadow-sm"
-                      : "text-slate-500 hover:text-slate-800"
+                      ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm"
+                      : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
                   )}
                 >
                   Active
@@ -469,8 +444,8 @@ export default function PrescriptionsPage() {
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
                     activeTab === "HISTORY"
-                      ? "bg-white text-slate-800 shadow-sm"
-                      : "text-slate-500 hover:text-slate-800"
+                      ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm"
+                      : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
                   )}
                 >
                   History
