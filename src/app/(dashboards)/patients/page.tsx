@@ -84,6 +84,7 @@ export default function PatientsPage() {
             risk: "Low",
             patientVitals: patient.patientVitals ?? null,
             patientHistory: patient.patientHistory ?? null,
+            patientVitalSnapshots: patient.patientVitalSnapshots ?? [],
             email: patient.email || "",
             phone: patient.phone || "",
           };

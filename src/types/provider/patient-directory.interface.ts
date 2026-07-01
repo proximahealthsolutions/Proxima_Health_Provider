@@ -20,4 +20,5 @@ export interface ProviderPatientDirectoryEntry {
     familyHistory?: string;
     socialHistory?: string;
   } | null;
+  patientVitalSnapshots?: any[];
 }

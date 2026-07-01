@@ -23,10 +23,14 @@ type MessageThread = {
   lastMessage?: string | null;
   lastMessageAt?: string | null;
   status: string;
+  patientRecordNumber?: string | null;
 };
 
 type LabOrder = {
   id: string;
+  patientId?: string;
+  patientName?: string;
+  patientRecordNumber?: string | null;
   test: string;
   ordered: string;
   uploadedBy?: "patient" | "provider" | null;
@@ -82,9 +86,12 @@ export async function loadProviderNotificationItems() {
     .map((row: LabOrder) => ({
       id: `lab-${row.id}`,
       title: "Patient uploaded a lab result",
-      detail: row.fileName ? `${row.test} - ${row.fileName}` : row.test,
+      detail: `${row.patientName || "Patient"}: ${row.fileName ? `${row.test} - ${row.fileName}` : row.test}`,
       kind: "lab",
       target: "laborders",
+      patientId: row.patientId,
+      patientName: row.patientName,
+      patientRecordNumber: row.patientRecordNumber,
       createdAt: row.ordered,
     }));
 
@@ -99,6 +106,7 @@ export async function loadProviderNotificationItems() {
       appointmentId: row.id,
       patientId: row.patientId ?? undefined,
       patientName: row.patientName,
+      patientRecordNumber: row.patientRecordNumber ?? null,
       createdAt: row.lastMessageAt ?? null,
     }));
 

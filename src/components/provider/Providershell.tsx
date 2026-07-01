@@ -13,6 +13,7 @@ import {
   ProviderUiProvider,
 } from "@/components/provider/ProviderUiContext";
 import { ProviderCallProvider } from "@/components/provider/ProviderCallProvider";
+import { getProviderPatient } from "@/services/provider-patients.service";
 
 export default function ProviderShell() {
   const [activePage,  setActivePage]  = useState<ProviderPage>("overview");
@@ -37,6 +38,32 @@ export default function ProviderShell() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!patientWorkspace?.id) return;
+    let cancelled = false;
+    getProviderPatient(patientWorkspace.id)
+      .then((fullPatient) => {
+        if (cancelled) return;
+        setPatientWorkspace((current) => {
+          if (current && current.id === patientWorkspace.id) {
+            return {
+              ...current,
+              patientVitals: fullPatient.patientVitals,
+              patientHistory: fullPatient.patientHistory,
+              patientVitalSnapshots: fullPatient.patientVitalSnapshots,
+            };
+          }
+          return current;
+        });
+      })
+      .catch((err) => {
+        console.error("Failed to load patient workspace details", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [patientWorkspace?.id]);
 
   const actions = useMemo(
     () => ({
@@ -91,7 +118,7 @@ export default function ProviderShell() {
         <ProviderTopbar
           activePage={activePage}
           onMenuToggle={() => setSidebarOpen((v) => !v)}
-          onOpenNotifications={() => setActivePage(patientWorkspace ? "patient-messages" : "notifications")}
+          onOpenNotifications={() => setActivePage("notifications")}
           profile={profile}
         />
         <main

@@ -26,7 +26,28 @@ export async function getProviderPatients() {
     primaryCondition: "General",
     patientVitals: row.patientVitals ?? null,
     patientHistory: row.patientHistory ?? null,
+    patientVitalSnapshots: row.patientVitalSnapshots ?? [],
   })) as ProviderPatientDirectoryEntry[];
+}
+
+export async function getProviderPatient(patientId: string) {
+  const resp = await fetchApi(`/providers/patients/${patientId}`);
+  return {
+    id: resp.id,
+    patientRecordNumber: resp.patientRecordNumber || "",
+    firstName: resp.firstName || "Patient",
+    lastName: resp.lastName || "",
+    gender: resp.gender || "—",
+    age: typeof resp.age === "number" ? resp.age : null,
+    dateOfBirth: resp.dateOfBirth || "",
+    phone: resp.phone || "",
+    email: resp.email || "",
+    createdAt: resp.createdAt || "",
+    primaryCondition: "General",
+    patientVitals: resp.patientVitals ?? null,
+    patientHistory: resp.patientHistory ?? null,
+    patientVitalSnapshots: resp.patientVitalSnapshots ?? [],
+  } as ProviderPatientDirectoryEntry;
 }
 
 export async function getProviderPatientMap() {

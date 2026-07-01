@@ -65,3 +65,17 @@ export async function updateProviderPrescription(input: {
   });
   return updated as ProviderPrescription;
 }
+
+export async function reviewMedicationChangeRequest(
+  requestId: string,
+  input: {
+    status: "APPROVED" | "DECLINED";
+    physicianNote?: string;
+  }
+) {
+  const updated = await fetchApi(`/providers/prescriptions/change-requests/${requestId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+  return updated;
+}

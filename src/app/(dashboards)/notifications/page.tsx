@@ -70,6 +70,10 @@ export default function ProviderNotificationsPage() {
       openPatientWorkspace(patient, "patient-prescriptions");
       return;
     }
+    if (item.target === "laborders" && patient) {
+      openPatientWorkspace(patient, "patient-laborders");
+      return;
+    }
     navigateTo(item.target);
   }
 
