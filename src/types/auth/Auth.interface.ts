@@ -6,7 +6,8 @@ export interface LoginFormProps {
 
 export interface LoginData {
   email: string;
-  password: string;
+  password?: string;
+  code?: string;
 }
 
 export interface AuthPageConfig {

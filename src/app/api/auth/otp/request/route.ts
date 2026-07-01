@@ -3,26 +3,16 @@ import { NextResponse } from "next/server";
 const BACKEND_URL = process.env.BACKEND_URL ?? "https://api-prod.proximahealthng.com/api";
 
 export async function POST(request: Request) {
-  const bodyText = await request.text();
-  let dataObj: any = {};
-  try {
-    dataObj = JSON.parse(bodyText);
-  } catch {}
+  const body = await request.text();
 
-  const isOtp = typeof dataObj.code === "string" && dataObj.code.trim().length > 0;
-  const targetUrl = isOtp
-    ? `${BACKEND_URL}/auth/otp/login`
-    : `${BACKEND_URL}/auth/login`;
-
-  const response = await fetch(targetUrl, {
+  const response = await fetch(`${BACKEND_URL}/auth/otp/request`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(dataObj),
+    body,
   });
 
   const data = await response.json().catch(() => ({}));
   return NextResponse.json(data, { status: response.status });
 }
-
