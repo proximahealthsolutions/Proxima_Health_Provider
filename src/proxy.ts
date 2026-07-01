@@ -36,7 +36,8 @@ export function proxy(request: NextRequest) {
       pathname.startsWith("/forgot-password") ||
       pathname.startsWith("/reset-password") ||
       pathname.startsWith("/under-review") ||
-      pathname.startsWith("/complete-profile");
+      pathname.startsWith("/complete-profile") ||
+      pathname.startsWith("/otp-login");
     const token = request.cookies.get("token")?.value;
     const hasToken = Boolean(token);
     const role = getTokenRole(token);
