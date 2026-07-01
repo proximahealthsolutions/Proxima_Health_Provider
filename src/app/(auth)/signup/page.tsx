@@ -43,43 +43,22 @@ export default function ProviderSignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-
-  function update(key: keyof typeof form) {
-    return (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      setForm((prev) => ({ ...prev, [key]: event.target.value }));
-  }
+  const [email, setEmail] = useState("");
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (loading || submitting) return;
     setError("");
-    if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-    if (form.password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
     setSubmitting(true);
     setLoading(true);
     try {
-
       await fetchApi("/auth/providers/signup", {
         method: "POST",
         body: JSON.stringify({
-          email: form.email.trim(),
-          password: form.password,
+          email: email.trim().toLowerCase(),
         }),
       });
-      router.push(`/verify?email=${encodeURIComponent(form.email.trim())}`);
+      router.push(`/verify?email=${encodeURIComponent(email.trim().toLowerCase())}`);
     } catch (err: any) {
       setError(err?.message || "Unable to create physician account.");
     } finally {
@@ -107,10 +86,10 @@ export default function ProviderSignupPage() {
         </div>
 
         <input
-          value={form.email}
-          onChange={update("email")}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           type="email"
-          placeholder="Email"
+          placeholder="Email Address"
           required
           autoComplete="email"
           autoCapitalize="none"
@@ -118,80 +97,8 @@ export default function ProviderSignupPage() {
           spellCheck={false}
           inputMode="email"
           enterKeyHint="next"
-          className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm"
+          className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm focus:outline-none focus:border-[var(--color-primary)] transition-colors text-[var(--color-text)]"
         />
-        <div className="relative">
-          <input
-            value={form.password}
-            onChange={update("password")}
-            type={showPassword ? "text" : "password"}
-            placeholder="Password"
-            required
-            autoComplete="new-password"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            enterKeyHint="next"
-            className="w-full pl-4 pr-12 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm"
-          />
-          <button
-            type="button"
-            title={showPassword ? "Hide password" : "Show password"}
-            onClick={() => setShowPassword((value) => !value)}
-            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              {showPassword ? (
-                <>
-                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                  <line x1="1" y1="1" x2="23" y2="23" />
-                </>
-              ) : (
-                <>
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
-                </>
-              )}
-            </svg>
-          </button>
-        </div>
-        <div className="relative">
-          <input
-            value={form.confirmPassword}
-            onChange={update("confirmPassword")}
-            type={showConfirmPassword ? "text" : "password"}
-            placeholder="Confirm password"
-            required
-            autoComplete="new-password"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            enterKeyHint="go"
-            className="w-full pl-4 pr-12 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm"
-          />
-          <button
-            type="button"
-            title={showConfirmPassword ? "Hide password" : "Show password"}
-            onClick={() => setShowConfirmPassword((value) => !value)}
-            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              {showConfirmPassword ? (
-                <>
-                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                  <line x1="1" y1="1" x2="23" y2="23" />
-                </>
-              ) : (
-                <>
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
-                </>
-              )}
-            </svg>
-          </button>
-        </div>
 
         {error && (
           <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20">
