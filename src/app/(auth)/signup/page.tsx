@@ -67,7 +67,7 @@ export default function ProviderSignupPage() {
     setSubmitting(true);
     setLoading(true);
     try {
-      await fetchApi("/auth/providers/signup", {
+      await fetchApi("/auth/signup", {
         method: "POST",
         body: JSON.stringify({
           email: method === "email" ? normalizedEmail : undefined,
