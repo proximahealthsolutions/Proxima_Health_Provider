@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatPhoneForDisplay, normalizePhoneForApi } from "@/lib/phone";
 
 type ContactMethod = "email" | "phone";
 
@@ -21,7 +22,7 @@ export default function LoginForm({ onSubmit, loading: parentLoading, error: par
       const normalizedContact =
         method === "email"
           ? contact.trim().toLowerCase()
-          : contact.trim().replace(/[^+0-9]/g, "");
+          : normalizePhoneForApi(contact);
 
       const body =
         method === "email"
@@ -109,12 +110,23 @@ export default function LoginForm({ onSubmit, loading: parentLoading, error: par
                 )}
               </svg>
             </div>
+            {method === "phone" && (
+              <span className="pointer-events-none absolute inset-y-0 left-10 flex items-center border-l border-[var(--color-border)] pl-3 text-sm font-semibold text-[var(--color-text)]">
+                +234
+              </span>
+            )}
             <input
               type={method === "email" ? "email" : "tel"}
               value={contact}
-              onChange={(e) => setContact(e.target.value)}
+              onChange={(e) =>
+                setContact(
+                  method === "email"
+                    ? e.target.value
+                    : formatPhoneForDisplay(e.target.value),
+                )
+              }
               placeholder={
-                method === "email" ? "doctor@proximahealth.com" : "+234 800 000 0000"
+                method === "email" ? "doctor@proximahealth.com" : "80 0000 0000"
               }
               required
               autoComplete={method === "email" ? "email" : "tel"}
@@ -123,7 +135,9 @@ export default function LoginForm({ onSubmit, loading: parentLoading, error: par
               spellCheck={false}
               inputMode={method === "email" ? "email" : "tel"}
               enterKeyHint="next"
-              className="w-full pl-10 pr-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] text-sm placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+              className={`w-full ${
+                method === "phone" ? "pl-24" : "pl-10"
+              } pr-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] text-sm placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-colors`}
             />
           </div>
         </div>

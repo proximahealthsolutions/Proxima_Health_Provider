@@ -11,7 +11,14 @@ export async function POST(request: Request) {
       "Content-Type": "application/json",
     },
     body,
-  });
+  }).catch(() => null);
+
+  if (!response) {
+    return NextResponse.json(
+      { message: "Unable to reach OTP service. Please try again later." },
+      { status: 502 },
+    );
+  }
 
   const data = await response.json().catch(() => ({}));
   return NextResponse.json(data, { status: response.status });

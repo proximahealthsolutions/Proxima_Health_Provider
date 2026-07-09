@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import AuthShell from "@/components/auth/AuthShell";
 import type { AuthPageConfig } from "@/types";
 import { fetchApi } from "@/lib/api";
+import { formatPhoneForDisplay, normalizePhoneForApi } from "@/lib/phone";
 
 const config: AuthPageConfig = {
   role: "provider",
@@ -52,7 +53,7 @@ export default function ProviderSignupPage() {
     if (loading || submitting) return;
     setError("");
     const normalizedEmail = email.trim().toLowerCase();
-    const normalizedPhone = phone.trim().replace(/[^+0-9]/g, "");
+    const normalizedPhone = normalizePhoneForApi(phone);
 
     if (method === "email" && !normalizedEmail) {
       setError("Please enter your email address.");
@@ -148,11 +149,20 @@ export default function ProviderSignupPage() {
                 )}
               </svg>
             </div>
+            {method === "phone" && (
+              <span className="pointer-events-none absolute inset-y-0 left-10 flex items-center border-l border-[var(--color-border)] pl-3 text-sm font-semibold text-[var(--color-text)]">
+                +234
+              </span>
+            )}
             <input
               type={method === "email" ? "email" : "tel"}
               value={method === "email" ? email : phone}
-              onChange={(e) => (method === "email" ? setEmail(e.target.value) : setPhone(e.target.value))}
-              placeholder={method === "email" ? "doctor@proximahealth.com" : "+234 800 000 0000"}
+              onChange={(e) =>
+                method === "email"
+                  ? setEmail(e.target.value)
+                  : setPhone(formatPhoneForDisplay(e.target.value))
+              }
+              placeholder={method === "email" ? "doctor@proximahealth.com" : "80 0000 0000"}
               required
               autoComplete={method === "email" ? "email" : "tel"}
               autoCapitalize="none"
@@ -160,7 +170,9 @@ export default function ProviderSignupPage() {
               spellCheck={false}
               inputMode={method === "email" ? "email" : "tel"}
               enterKeyHint="next"
-              className="w-full pl-10 pr-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+              className={`w-full ${
+                method === "phone" ? "pl-24" : "pl-10"
+              } pr-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-colors`}
             />
           </div>
         </div>
