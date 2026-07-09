@@ -40,7 +40,10 @@ const config = {
 function ProviderOtpLoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const email = searchParams.get("email") || "";
+  const email = searchParams.get("email");
+  const phone = searchParams.get("phone");
+  const identifier = email || phone || "";
+  const isEmail = Boolean(email);
 
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -116,7 +119,9 @@ function ProviderOtpLoginPageContent() {
       const resp = await fetchApi("/auth/login", {
         method: "POST",
         body: JSON.stringify({
-          email: email.trim().toLowerCase(),
+          ...(isEmail
+            ? { email: email?.trim().toLowerCase() }
+            : { phone: phone?.trim() }),
           code: codeString,
         }),
       });
@@ -129,7 +134,17 @@ function ProviderOtpLoginPageContent() {
 
       localStorage.setItem("token", resp.access_token);
       document.cookie = `token=${resp.access_token}; Path=/; SameSite=Lax`;
-      
+
+      if (!resp.user?.profileCompleted) {
+        window.location.href = "/complete-profile";
+        return;
+      }
+
+      if (resp.user?.providerApprovalStatus !== "APPROVED") {
+        window.location.href = "/under-review";
+        return;
+      }
+
       window.location.href = config.dashboardRoute;
     } catch (err: any) {
       setError(err?.message || "Invalid OTP code. Please try again.");
@@ -147,13 +162,21 @@ function ProviderOtpLoginPageContent() {
       const res = await fetch("/api/auth/otp/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+        body: JSON.stringify(
+          isEmail
+            ? { email: email?.trim().toLowerCase() }
+            : { phone: phone?.trim() },
+        ),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data.message || "Failed to resend OTP.");
       }
-      setSuccess("A new verification code has been sent to your email.");
+      setSuccess(
+        isEmail
+          ? "A new verification code has been sent to your email."
+          : "A new verification code has been sent to your phone.",
+      );
       setDigits(["", "", "", "", "", ""]);
       inputRefs[0].current?.focus();
     } catch (err: any) {
@@ -183,7 +206,7 @@ function ProviderOtpLoginPageContent() {
           Enter verification code
         </h1>
         <p className="text-[var(--color-text-muted)] text-sm leading-relaxed">
-          We sent a 6-digit code to <span className="font-semibold text-[var(--color-text)]">{email}</span>.
+          We sent a 6-digit code to <span className="font-semibold text-[var(--color-text)]">{identifier}</span>.
         </p>
       </div>
 
@@ -198,7 +221,7 @@ function ProviderOtpLoginPageContent() {
               onClick={() => router.push("/")}
               className="text-[12px] text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-semibold transition-colors bg-transparent border-0 cursor-pointer"
             >
-              Change Email
+              Change contact
             </button>
           </div>
 

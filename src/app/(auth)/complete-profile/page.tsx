@@ -79,10 +79,15 @@ export default function ProviderCompleteProfilePage() {
     country: "",
     state: "",
     city: "",
+    email: "",
     phone: "",
     dateOfBirth: "",
     profileImageUrl: "",
     providerRecordNumber: "",
+  });
+  const [contactStatus, setContactStatus] = useState({
+    emailVerified: false,
+    phoneVerified: false,
   });
   const [countryCode, setCountryCode] = useState("");
   const [stateCode, setStateCode] = useState("");
@@ -102,6 +107,7 @@ export default function ProviderCompleteProfilePage() {
           firstName: resp.firstName ?? "",
           lastName: resp.lastName ?? "",
           age: resp.dateOfBirth ? calculateAge(resp.dateOfBirth) : resp.age?.toString() ?? "",
+          email: resp.email ?? "",
           address: resp.address ?? "",
           street: resp.street ?? "",
           country: resp.country ?? "",
@@ -111,6 +117,10 @@ export default function ProviderCompleteProfilePage() {
           dateOfBirth: resp.dateOfBirth ?? "",
           profileImageUrl: resp.profileImageUrl ?? "",
           providerRecordNumber: resp.providerRecordNumber ?? "",
+        });
+        setContactStatus({
+          emailVerified: Boolean(resp.emailVerified),
+          phoneVerified: Boolean(resp.phoneVerified),
         });
       } catch {}
     }
@@ -196,14 +206,34 @@ export default function ProviderCompleteProfilePage() {
       return;
     }
     try {
-      await fetchApi("/providers/complete-profile", {
+      if (!form.email) {
+        setError(
+          contactStatus.phoneVerified
+            ? "Please add your email address to complete your profile."
+            : "Please provide an email address.",
+        );
+        setLoading(false);
+        return;
+      }
+      if (!form.phone) {
+        setError(
+          contactStatus.emailVerified
+            ? "Please add your phone number to complete your profile."
+            : "Please provide a phone number.",
+        );
+        setLoading(false);
+        return;
+      }
+      const updated = await fetchApi("/providers/complete-profile", {
         method: "POST",
         body: JSON.stringify({
           ...form,
           age: Number(form.age),
+          email: form.email || undefined,
+          phone: form.phone || undefined,
         }),
       });
-      router.push("/provider");
+      router.push(updated?.providerApprovalStatus === "APPROVED" ? "/provider" : "/under-review");
     } catch (err: any) {
       setError(err?.message || "Unable to complete profile.");
     } finally {
@@ -385,12 +415,30 @@ export default function ProviderCompleteProfilePage() {
           required
           className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm"
         />
-        <input
-          value={form.phone}
-          onChange={update("phone")}
-          placeholder="Phone (optional)"
-          className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm"
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input
+            type="email"
+            value={form.email}
+            onChange={update("email")}
+            placeholder="Email"
+            required={!form.email}
+            className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm"
+          />
+          <input
+            value={form.phone}
+            onChange={update("phone")}
+            placeholder="Phone"
+            required={!form.phone}
+            className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm"
+          />
+        </div>
+        <p className="text-sm text-[var(--color-text-muted)]">
+          {!form.email
+            ? "Add your email so patients can receive appointment details and reminders."
+            : !form.phone
+            ? "Add your phone so care teams can contact you quickly."
+            : "Your contact details help us keep your profile complete."}
+        </p>
         <input
           value={form.providerRecordNumber}
           onChange={update("providerRecordNumber")}

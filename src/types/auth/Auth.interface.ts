@@ -5,7 +5,8 @@ export interface LoginFormProps {
 }
 
 export interface LoginData {
-  email: string;
+  email?: string;
+  phone?: string;
   password?: string;
   code?: string;
 }
