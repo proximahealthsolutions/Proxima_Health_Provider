@@ -30,6 +30,8 @@ export default function ProviderNotificationsPage() {
         const all = await loadProviderNotificationItems();
         if (!mounted) return;
         setNotifications(all);
+        markProviderNotificationsRead(all.map((item) => item.id));
+        setReadIds(getReadProviderNotificationIds());
       } catch {
         if (!mounted) return;
         setNotifications([]);
